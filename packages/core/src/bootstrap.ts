@@ -8,21 +8,20 @@ import { TenantDataEncryptionService } from '@open-mercato/shared/lib/encryption
 import { registerTenantEncryptionSubscriber } from '@open-mercato/shared/lib/encryption/subscriber'
 import { isTenantDataEncryptionEnabled } from '@open-mercato/shared/lib/encryption/toggles'
 import { getSearchModuleConfigs } from '@open-mercato/shared/modules/search'
-import {
-  registerSearchModule,
-  createSearchDeleteSubscriber,
-  searchDeleteMetadata,
-} from '@open-mercato/search'
+import { registerSearchModule, createSearchDeleteSubscriber, searchDeleteMetadata } from '@open-mercato/search'
 import { RateLimiterService } from '@open-mercato/shared/lib/ratelimit/service'
 import { readRateLimitConfig } from '@open-mercato/shared/lib/ratelimit/config'
 import type { EntityManager } from '@mikro-orm/postgresql'
+import type { CacheStrategy } from '@open-mercato/cache'
+import type { EventBus } from '@open-mercato/events'
+import type { Module } from '@open-mercato/shared/modules/registry'
 
 // Use globalThis to survive tsx/webpack module duplication (same pattern as container.ts DI registrars)
 const RL_GLOBAL_KEY = '__openMercatoRateLimiterService__'
 const RL_SHUTDOWN_KEY = '__openMercatoRateLimiterShutdown__'
 
 export function getCachedRateLimiterService(): RateLimiterService | null {
-  let service = (globalThis as any)[RL_GLOBAL_KEY] as RateLimiterService | null ?? null
+  let service = ((globalThis as any)[RL_GLOBAL_KEY] as RateLimiterService | null) ?? null
   if (!service) {
     try {
       const rateLimitConfig = readRateLimitConfig()
@@ -30,14 +29,16 @@ export function getCachedRateLimiterService(): RateLimiterService | null {
       // Fire-and-forget async init (only needed for Redis strategy;
       // memory strategy works synchronously, and Redis has an in-memory
       // insurance limiter so the first few requests are still protected)
-      service.initialize().catch((err) => {
+      service.initialize().catch(err => {
         console.warn('[ratelimit] Async initialization failed:', (err as Error)?.message || err)
       })
       ;(globalThis as any)[RL_GLOBAL_KEY] = service
 
       // Register shutdown hook once to disconnect Redis on process exit
       if (!(globalThis as any)[RL_SHUTDOWN_KEY]) {
-        const shutdown = () => { service?.destroy().catch(() => {}) }
+        const shutdown = () => {
+          service?.destroy().catch(() => {})
+        }
         process.once('SIGTERM', shutdown)
         process.once('SIGINT', shutdown)
         ;(globalThis as any)[RL_SHUTDOWN_KEY] = true
@@ -51,25 +52,28 @@ export function getCachedRateLimiterService(): RateLimiterService | null {
 
 export async function bootstrap(container: AwilixContainer) {
   // Create and register the cache service
-  let cache: any
+  let cache: CacheStrategy
   try {
     cache = createCacheService()
-  } catch (err: any) {
-    console.warn('Cache service initialization failed; falling back to memory strategy:', err?.message || err)
+  } catch (err: unknown) {
+    console.warn(
+      'Cache service initialization failed; falling back to memory strategy:',
+      (err as Error)?.message || err,
+    )
     cache = createCacheService({ strategy: 'memory' })
   }
   container.register({ cache: asValue(cache) })
 
   // Create and register the DI-aware event bus
-  let eventBus: any
+  let eventBus: EventBus
   try {
     // Support both QUEUE_STRATEGY and legacy EVENTS_STRATEGY env vars
     const strategyEnv = process.env.QUEUE_STRATEGY || process.env.EVENTS_STRATEGY
     const queueStrategy = strategyEnv === 'async' || strategyEnv === 'redis' ? 'async' : 'local'
     eventBus = createEventBus({ resolve: container.resolve.bind(container) as any, queueStrategy })
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Fall back to local strategy to avoid breaking the app on misconfiguration
-    console.warn('Event bus initialization failed; falling back to local strategy:', err?.message || err)
+    console.warn('Event bus initialization failed; falling back to local strategy:', (err as Error)?.message || err)
     try {
       eventBus = createEventBus({ resolve: container.resolve.bind(container) as any, queueStrategy: 'local' })
     } catch {
@@ -87,21 +91,21 @@ export async function bootstrap(container: AwilixContainer) {
   setGlobalEventBus(eventBus)
   // Auto-register discovered module subscribers
   try {
-    let loadedModules: any[] = []
+    let loadedModules: Module[] = []
     try {
       const { getModules } = await import('@open-mercato/shared/lib/i18n/server')
       loadedModules = getModules()
     } catch {}
-    const subs = loadedModules.flatMap((m) => m.subscribers || [])
+    const subs = loadedModules.flatMap(m => m.subscribers || [])
     if (subs.length) (container.resolve as any)('eventBus').registerModuleSubscribers(subs)
 
     // Extract sync subscribers and register in the sync-subscriber-store
-    const syncSubs = subs.filter((s: any) => s.sync === true)
+    const syncSubs = subs.filter((s: { sync?: boolean }) => s.sync === true)
     if (syncSubs.length) {
       try {
         const { registerSyncSubscribers } = await import('@open-mercato/shared/lib/crud/sync-subscriber-store')
         registerSyncSubscribers(
-          syncSubs.map((s: any) => ({
+          syncSubs.map((s: { event: string; priority?: number; id: string; handler: any }) => ({
             metadata: { event: s.event, sync: true as const, priority: s.priority, id: s.id },
             handler: s.handler,
           })),
@@ -111,7 +115,7 @@ export async function bootstrap(container: AwilixContainer) {
       }
     }
   } catch (err) {
-    console.error("Failed to register module subscribers:", err);
+    console.error('Failed to register module subscribers:', err)
   }
 
   // KMS + tenant encryption
@@ -120,7 +124,11 @@ export async function bootstrap(container: AwilixContainer) {
   try {
     const em = container.resolve('em') as EntityManager
     const cacheService = (() => {
-      try { return container.resolve('cache') as any } catch { return null }
+      try {
+        return container.resolve('cache') as any
+      } catch {
+        return null
+      }
     })()
     const tenantEncryptionService = new TenantDataEncryptionService(em, { cache: cacheService, kms: kmsService })
     container.register({ tenantEncryptionService: asValue(tenantEncryptionService) })
