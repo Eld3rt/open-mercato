@@ -166,7 +166,7 @@ export class CurrencyFetchConfig {
 
   // Custom provider configuration (for future web scraping)
   @Property({ type: 'jsonb', nullable: true })
-  config?: any | null
+  config?: Record<string, unknown> | null
 
   @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
   createdAt: Date = new Date()
