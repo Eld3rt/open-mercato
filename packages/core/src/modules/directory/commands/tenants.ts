@@ -172,7 +172,7 @@ const updateTenantCommand: CommandHandler<TenantPayload, Tenant> = {
   },
 }
 
-const deleteTenantCommand: CommandHandler<{ body: any; query: Record<string, string> }, Tenant> = {
+const deleteTenantCommand: CommandHandler<{ body: Record<string, unknown>; query: Record<string, string> }, Tenant> = {
   id: 'directory.tenants.delete',
   async prepare(input, ctx) {
     const id = requireId(input, 'Tenant id required')
