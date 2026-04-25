@@ -4,7 +4,10 @@ import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
 import type { EntityManager, FilterQuery } from '@mikro-orm/postgresql'
 import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
 import { Organization, Tenant } from '@open-mercato/core/modules/directory/data/entities'
-import { organizationCreateSchema, organizationUpdateSchema } from '@open-mercato/core/modules/directory/data/validators'
+import {
+  organizationCreateSchema,
+  organizationUpdateSchema,
+} from '@open-mercato/core/modules/directory/data/validators'
 import { rebuildHierarchyForTenant } from '@open-mercato/core/modules/directory/lib/hierarchy'
 import { E } from '#generated/entities.ids.generated'
 import type { CrudEmitContext, CrudEventsConfig, CrudIndexerConfig } from '@open-mercato/shared/lib/crud/types'
@@ -31,7 +34,7 @@ export const organizationCrudEvents: CrudEventsConfig = {
   module: 'directory',
   entity: 'organization',
   persistent: true,
-  buildPayload: (ctx) => {
+  buildPayload: ctx => {
     const orgCtx = ctx as CrudEmitContext<Organization>
     return {
       id: orgCtx.identifiers.id,
@@ -43,7 +46,7 @@ export const organizationCrudEvents: CrudEventsConfig = {
 
 export const organizationCrudIndexer: CrudIndexerConfig = {
   entityType: E.directory.organization,
-  buildUpsertPayload: (ctx) => {
+  buildUpsertPayload: ctx => {
     const orgCtx = ctx as CrudEmitContext<Organization>
     return {
       entityType: E.directory.organization,
@@ -52,7 +55,7 @@ export const organizationCrudIndexer: CrudIndexerConfig = {
       tenantId: tenantIdFromContext(orgCtx),
     }
   },
-  buildDeletePayload: (ctx) => {
+  buildDeletePayload: ctx => {
     const orgCtx = ctx as CrudEmitContext<Organization>
     return {
       entityType: E.directory.organization,
@@ -132,7 +135,7 @@ function serializeOrganization(entity: Organization, custom?: Record<string, unk
 function captureOrganizationSnapshots(
   entity: Organization,
   childParents: ChildParentSnapshot[],
-  custom?: Record<string, unknown> | null
+  custom?: Record<string, unknown> | null,
 ): OrganizationSnapshots {
   const tenantId = resolveTenantIdFromEntity(entity)
   return {
@@ -144,7 +147,7 @@ function captureOrganizationSnapshots(
       slug: entity.slug ?? null,
       isActive: !!entity.isActive,
       parentId: entity.parentId ?? null,
-      childParents: (childParents ?? []).map((entry) => ({
+      childParents: (childParents ?? []).map(entry => ({
         childId: String(entry.childId),
         parentId: entry.parentId,
       })),
@@ -156,10 +159,16 @@ function captureOrganizationSnapshots(
 async function loadChildParentSnapshots(
   em: EntityManager,
   tenantId: string | null,
-  childIds: Iterable<string>
+  childIds: Iterable<string>,
 ): Promise<ChildParentSnapshot[]> {
   if (!tenantId) return []
-  const ids = Array.from(new Set(Array.from(childIds ?? []).map((id) => String(id)).filter(Boolean)))
+  const ids = Array.from(
+    new Set(
+      Array.from(childIds ?? [])
+        .map(id => String(id))
+        .filter(Boolean),
+    ),
+  )
   if (!ids.length) return []
   const filter: FilterQuery<Organization> = {
     tenant: tenantId,
@@ -168,10 +177,10 @@ async function loadChildParentSnapshots(
   } as unknown as FilterQuery<Organization>
   const children = await em.find(Organization, filter)
   if (!children.length) return []
-  const map = new Map(children.map((child) => [String(child.id), child.parentId ? String(child.parentId) : null]))
+  const map = new Map(children.map(child => [String(child.id), child.parentId ? String(child.parentId) : null]))
   return ids
-    .filter((id) => map.has(id))
-    .map((id) => ({
+    .filter(id => map.has(id))
+    .map(id => ({
       childId: id,
       parentId: map.get(id) ?? null,
     }))
@@ -179,7 +188,7 @@ async function loadChildParentSnapshots(
 
 async function restoreChildParents(em: EntityManager, tenantId: string, snapshots: ChildParentSnapshot[]) {
   if (!snapshots?.length) return
-  const ids = Array.from(new Set(snapshots.map((entry) => entry.childId).filter(Boolean)))
+  const ids = Array.from(new Set(snapshots.map(entry => entry.childId).filter(Boolean)))
   if (!ids.length) return
   const filter: FilterQuery<Organization> = {
     tenant: tenantId,
@@ -188,7 +197,7 @@ async function restoreChildParents(em: EntityManager, tenantId: string, snapshot
   } as unknown as FilterQuery<Organization>
   const children = await em.find(Organization, filter)
   if (!children.length) return
-  const desired = new Map(snapshots.map((entry) => [entry.childId, entry.parentId ?? null]))
+  const desired = new Map(snapshots.map(entry => [entry.childId, entry.parentId ?? null]))
   const toPersist: Organization[] = []
   for (const child of children) {
     const id = String(child.id)
@@ -204,7 +213,7 @@ async function restoreChildParents(em: EntityManager, tenantId: string, snapshot
 
 function normalizeChildIds(ids: readonly string[], exclude: string[]): string[] {
   const excludeSet = new Set(exclude)
-  return Array.from(new Set(ids)).filter((id) => !excludeSet.has(id))
+  return Array.from(new Set(ids)).filter(id => !excludeSet.has(id))
 }
 
 async function ensureParentExists(em: EntityManager, tenantId: string, parentId: string | null): Promise<void> {
@@ -225,9 +234,9 @@ async function assignChildren(
   em: EntityManager,
   tenantId: string,
   recordId: string,
-  desiredChildIds: Iterable<string>
+  desiredChildIds: Iterable<string>,
 ): Promise<void> {
-  const targetIds = Array.from(new Set(desiredChildIds)).filter((id) => id !== recordId)
+  const targetIds = Array.from(new Set(desiredChildIds)).filter(id => id !== recordId)
   if (!targetIds.length) return
   const filter: FilterQuery<Organization> = { tenant: tenantId, deletedAt: null, id: { $in: targetIds } }
   const children = await em.find(Organization, filter)
@@ -242,16 +251,26 @@ async function assignChildren(
   if (toPersist.length) await em.persistAndFlush(toPersist)
 }
 
-async function clearRemovedChildren(em: EntityManager, tenantId: string, recordId: string, desiredChildIds: Set<string>): Promise<void> {
+async function clearRemovedChildren(
+  em: EntityManager,
+  tenantId: string,
+  recordId: string,
+  desiredChildIds: Set<string>,
+): Promise<void> {
   const currentFilter: FilterQuery<Organization> = { tenant: tenantId, parentId: recordId, deletedAt: null }
   const current = await em.find(Organization, currentFilter)
-  const toPersist = current.filter((child) => !desiredChildIds.has(String(child.id)))
+  const toPersist = current.filter(child => !desiredChildIds.has(String(child.id)))
   if (!toPersist.length) return
   for (const child of toPersist) child.parentId = null
   await em.persistAndFlush(toPersist)
 }
 
-async function resolveUniqueSlug(em: EntityManager, tenantId: string, baseSlug: string, excludeId?: string): Promise<string> {
+async function resolveUniqueSlug(
+  em: EntityManager,
+  tenantId: string,
+  baseSlug: string,
+  excludeId?: string,
+): Promise<string> {
   let candidate = baseSlug
   let suffix = 0
   const maxAttempts = 50
@@ -273,7 +292,7 @@ const createOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
   id: 'directory.organizations.create',
   async execute(rawInput, ctx) {
     const { parsed, custom } = parseWithCustomFields(organizationCreateSchema, rawInput)
-    const em = (ctx.container.resolve('em') as EntityManager)
+    const em = ctx.container.resolve('em') as EntityManager
     const authTenantId = ctx.auth?.tenantId ?? null
     const tenantId = requireTenantScope(authTenantId, parsed.tenantId ?? null)
 
@@ -290,7 +309,7 @@ const createOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
     const tenantRef = em.getReference(Tenant, tenantId)
     const baseSlug = parsed.slug ? parsed.slug : slugify(parsed.name)
     const slug = baseSlug ? await resolveUniqueSlug(em, tenantId, baseSlug) : null
-    const de = (ctx.container.resolve('dataEngine') as DataEngine)
+    const de = ctx.container.resolve('dataEngine') as DataEngine
     const organization = await de.createOrmEntity({
       entity: Organization,
       data: {
@@ -377,8 +396,8 @@ const createOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
     if (!after) return
     const tenantId = after.tenantId
     if (!tenantId) return
-    const em = (ctx.container.resolve('em') as EntityManager)
-    const de = (ctx.container.resolve('dataEngine') as DataEngine)
+    const em = ctx.container.resolve('em') as EntityManager
+    const de = ctx.container.resolve('dataEngine') as DataEngine
     await restoreChildParents(em, tenantId, childrenBefore)
     if (after.custom && Object.keys(after.custom).length) {
       const reset = buildCustomFieldResetMap(undefined, after.custom)
@@ -407,16 +426,14 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
   id: 'directory.organizations.update',
   async prepare(rawInput, ctx) {
     const { parsed } = parseWithCustomFields(organizationUpdateSchema, rawInput)
-    const em = (ctx.container.resolve('em') as EntityManager)
+    const em = ctx.container.resolve('em') as EntityManager
     const current = await em.findOne(Organization, { id: parsed.id, deletedAt: null })
     if (!current) throw new CrudHttpError(404, { error: 'Not found' })
     const tenantId = resolveTenantIdFromEntity(current)
     const currentChildIds = Array.isArray(current.childIds) ? current.childIds : []
     const requestedChildIds = Array.isArray(parsed.childIds) ? parsed.childIds : []
     const combinedChildIds = new Set<string>([...currentChildIds.map(String), ...requestedChildIds.map(String)])
-    const childParentsBefore = tenantId
-      ? await loadChildParentSnapshots(em, tenantId, combinedChildIds)
-      : []
+    const childParentsBefore = tenantId ? await loadChildParentSnapshots(em, tenantId, combinedChildIds) : []
     const custom = await loadCustomFieldSnapshot(em, {
       entityId: E.directory.organization,
       recordId: String(current.id),
@@ -427,7 +444,7 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
   },
   async execute(rawInput, ctx) {
     const { parsed, custom } = parseWithCustomFields(organizationUpdateSchema, rawInput)
-    const em = (ctx.container.resolve('em') as EntityManager)
+    const em = ctx.container.resolve('em') as EntityManager
     const existing = await em.findOne(Organization, { id: parsed.id, deletedAt: null })
     if (!existing) throw new CrudHttpError(404, { error: 'Not found' })
 
@@ -444,8 +461,9 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
     }
 
     const normalizedChildIds = normalizeChildIds(parsed.childIds ?? [], [parsed.id, parentId ?? ''])
-    if (normalizedChildIds.some((id) => id === parentId)) throw new CrudHttpError(400, { error: 'Child cannot equal parent' })
-    if (Array.isArray(existing.ancestorIds) && normalizedChildIds.some((id) => existing.ancestorIds.includes(id))) {
+    if (normalizedChildIds.some(id => id === parentId))
+      throw new CrudHttpError(400, { error: 'Child cannot equal parent' })
+    if (Array.isArray(existing.ancestorIds) && normalizedChildIds.some(id => existing.ancestorIds.includes(id))) {
       throw new CrudHttpError(400, { error: 'Cannot assign ancestor as child' })
     }
 
@@ -474,11 +492,11 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
     if (parsed.slug !== undefined) {
       resolvedSlug = parsed.slug ? await resolveUniqueSlug(em, tenantId, parsed.slug, parsed.id) : parsed.slug
     }
-    const de = (ctx.container.resolve('dataEngine') as DataEngine)
+    const de = ctx.container.resolve('dataEngine') as DataEngine
     const organization = await de.updateOrmEntity({
       entity: Organization,
       where: { id: parsed.id, deletedAt: null } as FilterQuery<Organization>,
-      apply: (entity) => {
+      apply: entity => {
         if (parsed.name !== undefined) entity.name = parsed.name
         if (resolvedSlug !== undefined) entity.slug = resolvedSlug
         if (parsed.isActive !== undefined) entity.isActive = parsed.isActive
@@ -489,7 +507,7 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
     setInternalTenantId(organization, tenantId)
 
     const recordId = String(organization.id)
-    const desiredChildIds = new Set(normalizedChildIds.filter((id) => id !== recordId))
+    const desiredChildIds = new Set(normalizedChildIds.filter(id => id !== recordId))
     await clearRemovedChildren(em, tenantId, recordId, desiredChildIds)
     await assignChildren(em, tenantId, recordId, desiredChildIds)
     const childParentsAfter = await loadChildParentSnapshots(em, tenantId, combinedChildIds)
@@ -543,7 +561,12 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
       organizationId: String(result.id),
     })
     const after = serializeOrganization(result, custom)
-    const changes = buildChanges(beforeRecord, after as Record<string, unknown>, ['name', 'slug', 'isActive', 'parentId'])
+    const changes = buildChanges(beforeRecord, after as Record<string, unknown>, [
+      'name',
+      'slug',
+      'isActive',
+      'parentId',
+    ])
     const customDiff = diffCustomFieldChanges(beforeRecord?.custom, custom)
     for (const [key, diff] of Object.entries(customDiff)) {
       changes[`cf_${key}`] = diff
@@ -569,12 +592,12 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
     if (!before) return
     const tenantId = before.tenantId
     if (!tenantId) return
-    const em = (ctx.container.resolve('em') as EntityManager)
-    const de = (ctx.container.resolve('dataEngine') as DataEngine)
+    const em = ctx.container.resolve('em') as EntityManager
+    const de = ctx.container.resolve('dataEngine') as DataEngine
     const updated = await de.updateOrmEntity({
       entity: Organization,
       where: { id: before.id } as FilterQuery<Organization>,
-      apply: (entity) => {
+      apply: entity => {
         entity.name = before.name
         if (before.slug !== undefined) entity.slug = before.slug
         entity.isActive = before.isActive
@@ -614,11 +637,14 @@ const updateOrganizationCommand: CommandHandler<Record<string, unknown>, Organiz
   },
 }
 
-const deleteOrganizationCommand: CommandHandler<{ body: any; query: Record<string, string> }, Organization> = {
+const deleteOrganizationCommand: CommandHandler<
+  { body: Record<string, unknown>; query: Record<string, string> },
+  Organization
+> = {
   id: 'directory.organizations.delete',
   async prepare(input, ctx) {
     const id = requireId(input, 'Organization id required')
-    const em = (ctx.container.resolve('em') as EntityManager)
+    const em = ctx.container.resolve('em') as EntityManager
     const existing = await em.findOne(Organization, { id, deletedAt: null })
     if (!existing) return {}
     const tenantId = resolveTenantIdFromEntity(existing)
@@ -635,7 +661,7 @@ const deleteOrganizationCommand: CommandHandler<{ body: any; query: Record<strin
   },
   async execute(input, ctx) {
     const id = requireId(input, 'Organization id required')
-    const em = (ctx.container.resolve('em') as EntityManager)
+    const em = ctx.container.resolve('em') as EntityManager
     const existing = await em.findOne(Organization, { id, deletedAt: null })
     if (!existing) throw new CrudHttpError(404, { error: 'Not found' })
 
@@ -649,7 +675,7 @@ const deleteOrganizationCommand: CommandHandler<{ body: any; query: Record<strin
       Array.isArray(existing.childIds) ? existing.childIds : [],
     )
 
-    const de = (ctx.container.resolve('dataEngine') as DataEngine)
+    const de = ctx.container.resolve('dataEngine') as DataEngine
     const deleted = await de.deleteOrmEntity({
       entity: Organization,
       where: { id, deletedAt: null } as FilterQuery<Organization>,
@@ -713,8 +739,8 @@ const deleteOrganizationCommand: CommandHandler<{ body: any; query: Record<strin
     if (!before) return
     const tenantId = before.tenantId
     if (!tenantId) return
-    const em = (ctx.container.resolve('em') as EntityManager)
-    const de = (ctx.container.resolve('dataEngine') as DataEngine)
+    const em = ctx.container.resolve('em') as EntityManager
+    const de = ctx.container.resolve('dataEngine') as DataEngine
     let organization = await em.findOne(Organization, { id: before.id })
     if (organization) {
       organization.deletedAt = null
