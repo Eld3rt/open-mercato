@@ -20,6 +20,15 @@ import type { Module } from '@open-mercato/shared/modules/registry'
 const RL_GLOBAL_KEY = '__openMercatoRateLimiterService__'
 const RL_SHUTDOWN_KEY = '__openMercatoRateLimiterShutdown__'
 
+/**
+ * Extract error message from unknown error object
+ * @param err - Unknown error object
+ * @returns Error message string
+ */
+function getErrorMessage(err: unknown): string | unknown {
+  return (err as Error)?.message || err
+}
+
 export function getCachedRateLimiterService(): RateLimiterService | null {
   let service = ((globalThis as any)[RL_GLOBAL_KEY] as RateLimiterService | null) ?? null
   if (!service) {
@@ -30,7 +39,7 @@ export function getCachedRateLimiterService(): RateLimiterService | null {
       // memory strategy works synchronously, and Redis has an in-memory
       // insurance limiter so the first few requests are still protected)
       service.initialize().catch(err => {
-        console.warn('[ratelimit] Async initialization failed:', (err as Error)?.message || err)
+        console.warn('[ratelimit] Async initialization failed:', getErrorMessage(err))
       })
       ;(globalThis as any)[RL_GLOBAL_KEY] = service
 
@@ -44,7 +53,7 @@ export function getCachedRateLimiterService(): RateLimiterService | null {
         ;(globalThis as any)[RL_SHUTDOWN_KEY] = true
       }
     } catch (err) {
-      console.warn('[ratelimit] Failed to create rate limiter service:', (err as Error)?.message || err)
+      console.warn('[ratelimit] Failed to create rate limiter service:', getErrorMessage(err))
     }
   }
   return service
@@ -56,10 +65,7 @@ export async function bootstrap(container: AwilixContainer) {
   try {
     cache = createCacheService()
   } catch (err: unknown) {
-    console.warn(
-      'Cache service initialization failed; falling back to memory strategy:',
-      (err as Error)?.message || err,
-    )
+    console.warn('Cache service initialization failed; falling back to memory strategy:', getErrorMessage(err))
     cache = createCacheService({ strategy: 'memory' })
   }
   container.register({ cache: asValue(cache) })
@@ -73,7 +79,7 @@ export async function bootstrap(container: AwilixContainer) {
     eventBus = createEventBus({ resolve: container.resolve.bind(container) as any, queueStrategy })
   } catch (err: unknown) {
     // Fall back to local strategy to avoid breaking the app on misconfiguration
-    console.warn('Event bus initialization failed; falling back to local strategy:', (err as Error)?.message || err)
+    console.warn('Event bus initialization failed; falling back to local strategy:', getErrorMessage(err))
     try {
       eventBus = createEventBus({ resolve: container.resolve.bind(container) as any, queueStrategy: 'local' })
     } catch {
@@ -136,13 +142,13 @@ export async function bootstrap(container: AwilixContainer) {
       try {
         registerTenantEncryptionSubscriber(em, tenantEncryptionService)
       } catch (err) {
-        console.warn('[encryption] Failed to register MikroORM encryption subscriber:', (err as Error)?.message || err)
+        console.warn('[encryption] Failed to register MikroORM encryption subscriber:', getErrorMessage(err))
       }
     } else if (isTenantDataEncryptionEnabled() && !kmsService.isHealthy()) {
       console.warn('[encryption] Vault/KMS unhealthy - tenant data encryption is disabled until recovery')
     }
   } catch (err) {
-    console.warn('[encryption] Failed to initialize tenant encryption service:', (err as Error)?.message || err)
+    console.warn('[encryption] Failed to initialize tenant encryption service:', getErrorMessage(err))
   }
 
   // Register rate limiter service (singleton via globalThis — reused across request containers)
@@ -180,6 +186,6 @@ export async function bootstrap(container: AwilixContainer) {
       // searchIndexer may not be available
     }
   } catch (err) {
-    console.warn('[search] Failed to register search module:', (err as Error)?.message || err)
+    console.warn('[search] Failed to register search module:', getErrorMessage(err))
   }
 }
