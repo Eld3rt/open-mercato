@@ -4,18 +4,31 @@ import type { AwilixContainer } from 'awilix'
 import { setRecordCustomFields } from '@open-mercato/core/modules/entities/lib/helpers'
 import { validateCustomFieldValuesServer } from '@open-mercato/core/modules/entities/lib/validation'
 import type { EventBus } from '@open-mercato/events/types'
-import type {
-  CrudEventAction,
-  CrudEventsConfig,
-  CrudIndexerConfig,
-  CrudEntityIdentifiers,
-} from '../crud/types'
+import type { CrudEventAction, CrudEventsConfig, CrudIndexerConfig, CrudEntityIdentifiers } from '../crud/types'
 import { CrudHttpError } from '../crud/errors'
 import { normalizeCustomFieldValues } from '../custom-fields/normalize'
 import { parseBooleanToken } from '../boolean'
 
 const COVERAGE_REFRESH_INTERVAL_MS = 5 * 60 * 1000
 const coverageRefreshTracker = new Map<string, number>()
+
+/**
+ * Generate a UUIDv4 with native or fallback implementation
+ * Uses globalThis.crypto.randomUUID() if available, falls back to JavaScript implementation
+ * @returns UUIDv4 string
+ */
+function generateUUID(): string {
+  const g = globalThis as { crypto?: { randomUUID?: () => string } }
+  if (g.crypto?.randomUUID) {
+    return g.crypto.randomUUID()
+  }
+  // Fallback UUIDv4 generator
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
 
 function shouldTriggerCoverageRefresh(entityType: string | undefined, tenantId: string | null): boolean {
   if (!entityType) return false
@@ -43,7 +56,10 @@ export interface DataEngine {
     recordId: string
     organizationId?: string | null
     tenantId?: string | null
-    values: Record<string, string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined>>
+    values: Record<
+      string,
+      string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined>
+    >
     notify?: boolean // default true -> emit '<module>.<entity>.updated'
   }): Promise<void>
 
@@ -76,10 +92,7 @@ export interface DataEngine {
   }): Promise<void>
 
   // Generic ORM-backed entity operations used by CrudFactory
-  createOrmEntity<T extends object>(opts: {
-    entity: EntityName<T>
-    data: EntityData<T>
-  }): Promise<T>
+  createOrmEntity<T extends object>(opts: { entity: EntityName<T>; data: EntityData<T> }): Promise<T>
 
   updateOrmEntity<T extends object>(opts: {
     entity: EntityName<T>
@@ -115,7 +128,10 @@ export interface DataEngine {
 
 export class DefaultDataEngine implements DataEngine {
   private pendingSideEffects = new Map<string, QueuedCrudSideEffect>()
-  constructor(private em: EntityManager, private container: AwilixContainer) {}
+  constructor(
+    private em: EntityManager,
+    private container: AwilixContainer,
+  ) {}
 
   async setCustomFields(opts: Parameters<DataEngine['setCustomFields']>[0]): Promise<void> {
     const { entityId, recordId, organizationId = null, tenantId = null, values } = opts
@@ -137,7 +153,7 @@ export class DefaultDataEngine implements DataEngine {
     if (opts.notify !== false) {
       let bus: EventBus | null = null
       try {
-        bus = (this.container.resolve('eventBus') as EventBus)
+        bus = this.container.resolve('eventBus') as EventBus
       } catch {
         bus = null
       }
@@ -145,7 +161,11 @@ export class DefaultDataEngine implements DataEngine {
         const [mod, ent] = (entityId || '').split(':')
         if (mod && ent) {
           try {
-            await bus.emitEvent(`${mod}.${ent}.updated`, { id: recordId, organizationId, tenantId }, { persistent: true })
+            await bus.emitEvent(
+              `${mod}.${ent}.updated`,
+              { id: recordId, organizationId, tenantId },
+              { persistent: true },
+            )
           } catch {
             // non-blocking
           }
@@ -169,14 +189,14 @@ export class DefaultDataEngine implements DataEngine {
   private backcompatEavEnabled(): boolean {
     try {
       return parseBooleanToken(process.env.ENTITIES_BACKCOMPAT_EAV_FOR_CUSTOM ?? '') === true
-    } catch { return false }
+    } catch {
+      return false
+    }
   }
 
   private async ensureStorageTableExists(): Promise<void> {
     const knex = this.em.getConnection().getKnex()
-    const exists = await knex('information_schema.tables')
-      .where({ table_name: 'custom_entities_storage' })
-      .first()
+    const exists = await knex('information_schema.tables').where({ table_name: 'custom_entities_storage' }).first()
     if (!exists) {
       throw new Error('custom_entities_storage table is missing. Run migrations (yarn db:migrate).')
     }
@@ -223,17 +243,14 @@ export class DefaultDataEngine implements DataEngine {
     const rawId = String(opts.recordId ?? '').trim()
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawId)
     const sentinel = rawId.toLowerCase()
-    const shouldGenerate = !rawId || !isUuid || sentinel === 'create' || sentinel === 'new' || sentinel === 'null' || sentinel === 'undefined'
-    const id = shouldGenerate ? ((): string => {
-      const g = globalThis as { crypto?: { randomUUID?: () => string } }
-      if (g.crypto?.randomUUID) return g.crypto.randomUUID()
-      // Fallback UUIDv4 generator
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-        const r = (Math.random() * 16) | 0
-        const v = c === 'x' ? r : (r & 0x3) | 0x8
-        return v.toString(16)
-      })
-    })() : rawId
+    const shouldGenerate =
+      !rawId ||
+      !isUuid ||
+      sentinel === 'create' ||
+      sentinel === 'new' ||
+      sentinel === 'null' ||
+      sentinel === 'undefined'
+    const id = shouldGenerate ? generateUUID() : rawId
     const orgId = opts.organizationId ?? null
     const tenantId = opts.tenantId ?? null
     const doc: Record<string, unknown> = { id, ...this.normalizeDocValues(opts.values || {}) }
@@ -358,20 +375,19 @@ export class DefaultDataEngine implements DataEngine {
         tenantId: opts.tenantId ?? null,
       })
       const now = new Date()
-      const mutated = values.filter((record) => {
+      const mutated = values.filter(record => {
         if (record.deletedAt) return false
         record.deletedAt = now
         return true
       })
       if (mutated.length) await this.em.persistAndFlush(values)
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
   }
 
   async createOrmEntity<T extends object>(opts: { entity: EntityName<T>; data: EntityData<T> }): Promise<T> {
-    const entity = this.em.create(
-      opts.entity,
-      opts.data as RequiredEntityData<T, never, true>
-    )
+    const entity = this.em.create(opts.entity, opts.data as RequiredEntityData<T, never, true>)
     await this.em.persistAndFlush(entity)
     return entity
   }
@@ -408,14 +424,20 @@ export class DefaultDataEngine implements DataEngine {
     return current
   }
 
-  async emitOrmEntityEvent<T>(opts: { action: CrudEventAction; entity: T; events?: CrudEventsConfig<T>; indexer?: CrudIndexerConfig<T>; identifiers: CrudEntityIdentifiers }): Promise<void> {
+  async emitOrmEntityEvent<T>(opts: {
+    action: CrudEventAction
+    entity: T
+    events?: CrudEventsConfig<T>
+    indexer?: CrudIndexerConfig<T>
+    identifiers: CrudEntityIdentifiers
+  }): Promise<void> {
     const { action, entity, events, indexer, identifiers } = opts
     if (!events && !indexer) return
     if (!identifiers?.id) return
 
     let bus: EventBus | null = null
     try {
-      bus = (this.container.resolve('eventBus') as EventBus)
+      bus = this.container.resolve('eventBus') as EventBus
     } catch {
       bus = null
     }
@@ -492,17 +514,25 @@ export class DefaultDataEngine implements DataEngine {
       }
 
       if (shouldTriggerCoverageRefresh(indexer.entityType, ctx.identifiers.tenantId ?? null)) {
-        void bus.emitEvent('query_index.coverage.refresh', {
-          entityType: indexer.entityType,
-          tenantId: ctx.identifiers.tenantId ?? null,
-          organizationId: null,
-          delayMs: 0,
-        }).catch(() => undefined)
+        void bus
+          .emitEvent('query_index.coverage.refresh', {
+            entityType: indexer.entityType,
+            tenantId: ctx.identifiers.tenantId ?? null,
+            organizationId: null,
+            delayMs: 0,
+          })
+          .catch(() => undefined)
       }
     }
   }
 
-  markOrmEntityChange<T>(opts: { action: CrudEventAction; entity: T | null | undefined; events?: CrudEventsConfig<T>; indexer?: CrudIndexerConfig<T>; identifiers: CrudEntityIdentifiers }): void {
+  markOrmEntityChange<T>(opts: {
+    action: CrudEventAction
+    entity: T | null | undefined
+    events?: CrudEventsConfig<T>
+    indexer?: CrudIndexerConfig<T>
+    identifiers: CrudEntityIdentifiers
+  }): void {
     const { entity, identifiers } = opts
     if (!entity) return
     if (!identifiers?.id) return
