@@ -114,6 +114,32 @@ function mapJsonSchemaTypeToFieldType(propDef: any): string {
 }
 
 /**
+ * Convert mapping object to array format for form editing
+ * @param mappingObj - Object with key-value pairs (e.g., { "key1": "value1", "key2": "value2" })
+ * @returns Array of { key, value } pairs
+ */
+function mappingObjectToArray(mappingObj: Record<string, unknown> | undefined): Mapping[] {
+  if (!mappingObj) return []
+  return Object.entries(mappingObj).map(([key, value]) => ({
+    key,
+    value: value as string,
+  }))
+}
+
+/**
+ * Convert mapping array to object format for node configuration
+ * Filters out empty/invalid pairs (where key or value is missing)
+ * @param mappingArr - Array of { key, value } pairs
+ * @returns Object with key-value pairs, or empty object if no valid pairs
+ */
+function mappingArrayToObject(mappingArr: Mapping[] | undefined): Record<string, string> {
+  if (!mappingArr || mappingArr.length === 0) return {}
+  return mappingArr
+    .filter((m) => m.key && m.value)
+    .reduce((acc, m) => ({ ...acc, [m.key]: m.value }), {})
+}
+
+/**
  * Convert Node data to CrudForm values
  *
  * Handles all 7 node types: start, end, userTask, automated, subWorkflow, waitForSignal, decision
@@ -171,25 +197,9 @@ export function nodeToFormValues(node: Node): NodeFormValues {
     values.subWorkflowId = nodeData.config.subWorkflowId || ''
     values.subWorkflowVersion = nodeData.config.version?.toString() || ''
 
-    // Convert inputMapping object to array for editing
-    if (nodeData.config.inputMapping) {
-      values.inputMappings = Object.entries(nodeData.config.inputMapping).map(([key, value]) => ({
-        key,
-        value: value as string
-      }))
-    } else {
-      values.inputMappings = []
-    }
-
-    // Convert outputMapping object to array for editing
-    if (nodeData.config.outputMapping) {
-      values.outputMappings = Object.entries(nodeData.config.outputMapping).map(([key, value]) => ({
-        key,
-        value: value as string
-      }))
-    } else {
-      values.outputMappings = []
-    }
+    // Convert inputMapping and outputMapping objects to arrays for editing
+    values.inputMappings = mappingObjectToArray(nodeData.config.inputMapping)
+    values.outputMappings = mappingObjectToArray(nodeData.config.outputMapping)
   }
 
   // WaitForSignal fields
@@ -291,18 +301,13 @@ export function formValuesToNodeUpdates(
       }
     }
 
-    // Convert inputMappings array to object
+    // Convert inputMappings and outputMappings arrays to objects
     if (values.inputMappings && values.inputMappings.length > 0) {
-      config.inputMapping = values.inputMappings
-        .filter(m => m.key && m.value)
-        .reduce((acc, m) => ({ ...acc, [m.key]: m.value }), {})
+      config.inputMapping = mappingArrayToObject(values.inputMappings)
     }
 
-    // Convert outputMappings array to object
     if (values.outputMappings && values.outputMappings.length > 0) {
-      config.outputMapping = values.outputMappings
-        .filter(m => m.key && m.value)
-        .reduce((acc, m) => ({ ...acc, [m.key]: m.value }), {})
+      config.outputMapping = mappingArrayToObject(values.outputMappings)
     }
 
     if (Object.keys(config).length > 0) {
