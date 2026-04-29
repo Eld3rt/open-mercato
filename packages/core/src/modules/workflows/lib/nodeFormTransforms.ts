@@ -134,9 +134,7 @@ function mappingObjectToArray(mappingObj: Record<string, unknown> | undefined): 
  */
 function mappingArrayToObject(mappingArr: Mapping[] | undefined): Record<string, string> {
   if (!mappingArr || mappingArr.length === 0) return {}
-  return mappingArr
-    .filter((m) => m.key && m.value)
-    .reduce((acc, m) => ({ ...acc, [m.key]: m.value }), {})
+  return mappingArr.filter(m => m.key && m.value).reduce((acc, m) => ({ ...acc, [m.key]: m.value }), {})
 }
 
 /**
@@ -223,9 +221,7 @@ export function nodeToFormValues(node: Node): NodeFormValues {
   if (nodeData?.retryPolicy) {
     advancedFields.retryPolicy = nodeData.retryPolicy
   }
-  values.advancedConfig = Object.keys(advancedFields).length > 0
-    ? JSON.stringify(advancedFields, null, 2)
-    : ''
+  values.advancedConfig = Object.keys(advancedFields).length > 0 ? JSON.stringify(advancedFields, null, 2) : ''
 
   return values
 }
@@ -236,10 +232,7 @@ export function nodeToFormValues(node: Node): NodeFormValues {
  * Returns partial node data to be merged with existing node data.
  * Handles sanitization and validation.
  */
-export function formValuesToNodeUpdates(
-  values: NodeFormValues,
-  node: Node
-): Partial<Node['data']> {
+export function formValuesToNodeUpdates(values: NodeFormValues, node: Node): Partial<Node['data']> {
   const updates: Partial<Node['data']> = {
     stepName: values.stepName,
     label: values.stepName, // Keep label for backward compatibility
@@ -251,27 +244,35 @@ export function formValuesToNodeUpdates(
   if (node.type === 'userTask') {
     updates.assignedTo = values.assignedTo || undefined
     updates.assignedToRoles = values.assignedToRoles
-      ? values.assignedToRoles.split(',').map((r) => r.trim()).filter(Boolean)
+      ? values.assignedToRoles
+          .split(',')
+          .map(r => r.trim())
+          .filter(Boolean)
       : []
     updates.formKey = values.formKey || undefined
 
     // Build userTaskConfig with all fields
     updates.userTaskConfig = {
-      ...(values.formFields && values.formFields.length > 0 && {
-        formSchema: {
-          fields: values.formFields,
-        },
-      }),
+      ...(values.formFields &&
+        values.formFields.length > 0 && {
+          formSchema: {
+            fields: values.formFields,
+          },
+        }),
       ...(values.assignedTo && { assignedTo: values.assignedTo }),
       ...(values.assignedToRoles && {
-        assignedToRoles: values.assignedToRoles.split(',').map((r) => r.trim()).filter(Boolean)
+        assignedToRoles: values.assignedToRoles
+          .split(',')
+          .map(r => r.trim())
+          .filter(Boolean),
       }),
       // Preserve advanced fields
       ...(values.assignmentRule && { assignmentRule: values.assignmentRule }),
       ...(values.slaDuration && { slaDuration: values.slaDuration }),
-      ...(values.escalationRules && values.escalationRules.length > 0 && {
-        escalationRules: values.escalationRules
-      }),
+      ...(values.escalationRules &&
+        values.escalationRules.length > 0 && {
+          escalationRules: values.escalationRules,
+        }),
     }
   }
 

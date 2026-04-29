@@ -1,33 +1,19 @@
 import type { EnricherTimingEntry } from './devtools-types'
-
-const MAX_TIMING_ENTRIES = 200
-const GLOBAL_KEY = '__openMercatoEnricherTimingEntries__'
+import { createDevCircularStore } from './circular-store'
 
 const isDev = process.env.NODE_ENV === 'development'
 
-function getStore(): EnricherTimingEntry[] {
-  const existing = (globalThis as Record<string, unknown>)[GLOBAL_KEY]
-  if (Array.isArray(existing)) return existing as EnricherTimingEntry[]
-  const store: EnricherTimingEntry[] = []
-  ;(globalThis as Record<string, unknown>)[GLOBAL_KEY] = store
-  return store
-}
+const timingStore = createDevCircularStore<EnricherTimingEntry>({
+  globalKey: '__openMercatoEnricherTimingEntries__',
+  maxEntries: 200,
+})
 
 export function getEnricherTimingEntries(): EnricherTimingEntry[] {
-  return getStore()
+  return timingStore.getAll()
 }
 
 export function clearEnricherTimingEntries(): void {
-  ;(globalThis as Record<string, unknown>)[GLOBAL_KEY] = []
-}
-
-function addTimingEntry(entry: EnricherTimingEntry): void {
-  const store = getStore()
-  store.push(entry)
-  if (store.length > MAX_TIMING_ENTRIES) {
-    const trimmed = store.slice(-MAX_TIMING_ENTRIES)
-    ;(globalThis as Record<string, unknown>)[GLOBAL_KEY] = trimmed
-  }
+  timingStore.clear()
 }
 
 export function logEnricherTiming(
@@ -36,9 +22,7 @@ export function logEnricherTiming(
   targetEntity: string,
   durationMs: number,
 ): void {
-  if (!isDev) return
-
-  addTimingEntry({
+  timingStore.add({
     enricherId,
     moduleId,
     targetEntity,
