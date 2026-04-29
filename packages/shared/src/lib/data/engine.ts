@@ -8,6 +8,7 @@ import type { CrudEventAction, CrudEventsConfig, CrudIndexerConfig, CrudEntityId
 import { CrudHttpError } from '../crud/errors'
 import { normalizeCustomFieldValues } from '../custom-fields/normalize'
 import { parseBooleanToken } from '../boolean'
+import { isEmpty, hasKeys } from '../object/utils'
 
 const COVERAGE_REFRESH_INTERVAL_MS = 5 * 60 * 1000
 const coverageRefreshTracker = new Map<string, number>()
@@ -224,7 +225,7 @@ export class DefaultDataEngine implements DataEngine {
     values: Record<string, unknown> | undefined | null,
   ): Promise<void> {
     const prepared = this.normalizeValuesForValidation(values)
-    if (!entityId || Object.keys(prepared).length === 0) return
+    if (!entityId || isEmpty(prepared)) return
     const result = await validateCustomFieldValuesServer(this.em, {
       entityId,
       organizationId,
@@ -288,7 +289,7 @@ export class DefaultDataEngine implements DataEngine {
     }
 
     // Optional EAV backward compatibility (disabled by default)
-    if (this.backcompatEavEnabled() && opts.values && Object.keys(opts.values).length > 0) {
+    if (this.backcompatEavEnabled() && opts.values && hasKeys(opts.values)) {
       await this.setCustomFields({
         entityId: opts.entityId,
         recordId: id,
@@ -337,7 +338,7 @@ export class DefaultDataEngine implements DataEngine {
     }
 
     // Optional EAV backward compatibility (disabled by default)
-    if (this.backcompatEavEnabled() && opts.values && Object.keys(opts.values).length > 0) {
+    if (this.backcompatEavEnabled() && opts.values && hasKeys(opts.values)) {
       await this.setCustomFields({
         entityId: opts.entityId,
         recordId: id,

@@ -9,6 +9,7 @@ import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
 import { resolveOrganizationScopeForRequest, type OrganizationScope } from '@open-mercato/core/modules/directory/utils/organizationScope'
 import { serializeOperationMetadata } from '@open-mercato/shared/lib/commands/operationMetadata'
 import { parseBooleanToken } from '@open-mercato/shared/lib/boolean'
+import { isPlainObject, removeUndefinedValues } from '@open-mercato/shared/lib/object/utils'
 import {
   runMutationGuards,
   bridgeLegacyGuard,
@@ -554,8 +555,7 @@ function toInterceptorHeaders(headers: Headers): Record<string, string> {
 function cleanInterceptorObject(
   value: Record<string, unknown> | undefined,
 ): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object') return undefined
-  return Object.fromEntries(Object.entries(value).filter(([, current]) => current !== undefined))
+  return removeUndefinedValues(value)
 }
 
 function isUuid(v: any): v is string {

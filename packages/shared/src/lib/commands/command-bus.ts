@@ -13,6 +13,7 @@ import { defaultUndoToken } from './types'
 import type { ActionLogService } from '@open-mercato/core/modules/audit_logs/services/actionLogService'
 import type { AwilixContainer } from 'awilix'
 import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
+import { hasKeys } from '@open-mercato/shared/lib/object/utils'
 import {
   canonicalizeResourceTag,
   deriveResourceFromCommandId,
@@ -139,7 +140,7 @@ function buildRecordChangesDeep(
     const toRec = asRecord(to)
     if (fromRec && toRec) {
       const nested = buildRecordChangesDeep(fromRec, toRec, path, seen)
-      if (Object.keys(nested).length) {
+      if (hasKeys(nested)) {
         Object.assign(changes, nested)
         continue
       }
@@ -159,7 +160,7 @@ function deriveChangesFromSnapshots(
   const afterRec = asRecord(after)
   if (!beforeRec || !afterRec) return null
   const changes = buildRecordChanges(beforeRec, afterRec)
-  return Object.keys(changes).length ? changes : null
+  return hasKeys(changes) ? changes : null
 }
 
 function invertRecordedChanges(
