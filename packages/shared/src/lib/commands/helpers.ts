@@ -3,6 +3,7 @@ import type { z } from 'zod'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
 import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
 import { normalizeCustomFieldValues } from '../custom-fields/normalize'
+import { isEmpty } from '../object/utils'
 export { normalizeCustomFieldValues } from '../custom-fields/normalize'
 import type { CrudEventsConfig, CrudIndexerConfig, CrudEmitContext } from '@open-mercato/shared/lib/crud/types'
 import type { CommandRuntimeContext } from '@open-mercato/shared/lib/commands'
@@ -32,7 +33,7 @@ export async function setCustomFieldsIfAny(opts: {
   notify?: boolean
 }) {
   const { values } = opts
-  if (!values || !Object.keys(values).length) return
+  if (!values || isEmpty(values)) return
   const { dataEngine, entityId, recordId, tenantId, organizationId, notify = false } = opts
   const normalized = normalizeCustomFieldValues(values)
   await dataEngine.setCustomFields({
