@@ -13,6 +13,7 @@ import type {
   SingleEnrichmentResult,
 } from './response-enricher'
 import { getEnrichersForEntity } from './enricher-registry'
+import { isNonEmptyString, getTrimmedString } from '../string/validation'
 import { logEnricherTiming } from '../umes/enricher-timing'
 
 const DEFAULT_TIMEOUT = 2000
@@ -104,7 +105,7 @@ function buildCacheKey(
 
 function extractRecordId(record: Record<string, unknown>): string {
   const idValue = record.id
-  if (typeof idValue === 'string' && idValue.trim().length > 0) return idValue.trim()
+  if (isNonEmptyString(idValue)) return idValue
   if (typeof idValue === 'number') return String(idValue)
   return 'unknown'
 }
@@ -124,8 +125,9 @@ function getEnricherCacheTags(enricher: ResponseEnricher, context: EnricherConte
     `enricher:${enricher.id}`,
   ])
   for (const tag of enricher.cache?.tags ?? []) {
-    if (!tag || tag.trim().length === 0) continue
-    tags.add(tag)
+    const trimmed = getTrimmedString(tag)
+    if (!trimmed) continue
+    tags.add(trimmed)
   }
   return Array.from(tags)
 }

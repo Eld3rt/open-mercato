@@ -2,6 +2,7 @@ import type { QueryEngine, QueryOptions, QueryResult, QueryCustomFieldSource, Qu
 import type { EntityId } from '@open-mercato/shared/modules/entities'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { Knex } from 'knex'
+import { isNonEmptyString, getTrimmedString } from '../string/validation'
 import {
   applyJoinFilters,
   normalizeFilters,
@@ -117,9 +118,7 @@ function buildFilterableCustomFieldJoins(
   if (!sources || sources.length === 0) return []
   return sources.flatMap((source, index) => {
     if (!source.join) return []
-    const alias = typeof source.alias === 'string' && source.alias.trim().length > 0
-      ? source.alias.trim()
-      : `cfs_${index}`
+    const alias = getTrimmedString(source.alias) ?? `cfs_${index}`
     return [{
       alias,
       table: source.table,
@@ -995,7 +994,7 @@ export class BasicQueryEngine implements QueryEngine {
       const ids = raw.filter((id): id is string => typeof id === 'string' && id.length > 0)
       return { ids: Array.from(new Set(ids)), includeNull }
     }
-    if (typeof opts.organizationId === 'string' && opts.organizationId.trim().length > 0) {
+    if (isNonEmptyString(opts.organizationId)) {
       return { ids: [opts.organizationId], includeNull: false }
     }
     return null
@@ -1045,7 +1044,7 @@ export class BasicQueryEngine implements QueryEngine {
         }
       })()
       const optionsBonus = Array.isArray(cfg.options) && cfg.options.length ? 2 : 0
-      const dictionaryBonus = typeof cfg.dictionaryId === 'string' && cfg.dictionaryId.trim().length ? 5 : 0
+      const dictionaryBonus = isNonEmptyString(cfg.dictionaryId) ? 5 : 0
       const base = (listVisibleScore * 16) + (formEditableScore * 8) + (filterableScore * 4) + kindScore + optionsBonus + dictionaryBonus
       const penalty = typeof cfg.priority === 'number' ? cfg.priority : 0
       return { base, penalty, entityIndex }

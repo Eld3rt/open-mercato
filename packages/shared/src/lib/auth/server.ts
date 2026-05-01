@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers.js'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import { verifyJwt } from './jwt'
+import { isNonEmptyString } from '../string/validation'
 
 const TENANT_COOKIE_NAME = 'om_selected_tenant'
 const ORGANIZATION_COOKIE_NAME = 'om_selected_org'
@@ -186,7 +187,7 @@ function extractApiKey(req: Request): string | null {
 
 async function resolveCanonicalInteractiveAuthContext(auth: AuthContext): Promise<AuthContext> {
   if (!auth || auth.isApiKey) return auth
-  if (typeof auth.sub !== 'string' || auth.sub.trim().length === 0) return null
+  if (!isNonEmptyString(auth.sub)) return null
 
   try {
     const [{ createRequestContainer }, { resolveCanonicalStaffAuthContext }] = await Promise.all([
