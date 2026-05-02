@@ -1,4 +1,5 @@
 import type { Where } from '@open-mercato/shared/lib/query/types'
+import { isNonEmptyString } from '../string/validation'
 
 export const MAX_IDS_PER_REQUEST = 200
 
@@ -39,7 +40,7 @@ function readExistingIds(filter: unknown): string[] | null {
 }
 
 export function parseIdsParam(raw: unknown, maxIds: number = MAX_IDS_PER_REQUEST): string[] {
-  if (typeof raw !== 'string' || raw.trim().length === 0) return []
+  if (!isNonEmptyString(raw)) return []
   const safeMax = Number.isFinite(maxIds) && maxIds > 0 ? Math.floor(maxIds) : MAX_IDS_PER_REQUEST
   const parsed = normalizeIdList(raw.split(','))
   return parsed.slice(0, safeMax)

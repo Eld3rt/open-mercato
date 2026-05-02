@@ -79,7 +79,7 @@ function deepEqual(a: unknown, b: unknown, seen?: Set<unknown>): boolean {
     const keysA = Object.keys(aRec)
     const keysB = Object.keys(bRec)
     if (keysA.length !== keysB.length) return false
-    return keysA.every((key) => deepEqual(aRec[key], bRec[key], seen))
+    return keysA.every(key => deepEqual(aRec[key], bRec[key], seen))
   }
   return false
 }
@@ -90,7 +90,7 @@ const SKIPPED_CHANGE_KEYS = new Set(['updatedAt', 'updated_at'])
 function appendCustomFieldChanges(
   changes: Record<string, { from: unknown; to: unknown }>,
   before: unknown,
-  after: unknown
+  after: unknown,
 ): boolean {
   const beforeRec = asRecord(before)
   const afterRec = asRecord(after)
@@ -163,9 +163,7 @@ function deriveChangesFromSnapshots(
   return hasKeys(changes) ? changes : null
 }
 
-function invertRecordedChanges(
-  changes: unknown,
-): Record<string, { from: unknown; to: unknown }> | null {
+function invertRecordedChanges(changes: unknown): Record<string, { from: unknown; to: unknown }> | null {
   const source = asRecord(changes)
   if (!source) return null
   const inverted: Record<string, { from: unknown; to: unknown }> = {}
@@ -197,7 +195,7 @@ function extractAliasList(source: unknown): string[] {
 export class CommandBus {
   async execute<TInput = unknown, TResult = unknown>(
     commandId: string,
-    options: CommandExecutionOptions<TInput>
+    options: CommandExecutionOptions<TInput>,
   ): Promise<CommandExecuteResult<TResult>> {
     const handler = this.resolveHandler<TInput, TResult>(commandId)
 
@@ -205,9 +203,7 @@ export class CommandBus {
     const allInterceptors = getAllCommandInterceptorInstances()
     let interceptorMetadata = new Map<string, Record<string, unknown>>()
     let effectiveOptions = options
-    const userFeatures = allInterceptors.length
-      ? await this.resolveUserFeaturesForInterceptors(options.ctx)
-      : []
+    const userFeatures = allInterceptors.length ? await this.resolveUserFeaturesForInterceptors(options.ctx) : []
     if (allInterceptors.length) {
       const interceptorCtx: CommandInterceptorContext = {
         commandId,
@@ -216,7 +212,11 @@ export class CommandBus {
         container: options.ctx.container,
       }
       const beforeResult = await runCommandInterceptorsBefore(
-        allInterceptors, commandId, options.input, interceptorCtx, userFeatures,
+        allInterceptors,
+        commandId,
+        options.input,
+        interceptorCtx,
+        userFeatures,
       )
       if (!beforeResult.ok) {
         throw new CommandInterceptorError(beforeResult.error!.message)
@@ -261,7 +261,9 @@ export class CommandBus {
       const shouldInfer =
         currentChanges === undefined ||
         currentChanges === null ||
-        (typeof currentChanges === 'object' && !Array.isArray(currentChanges) && Object.keys(currentChanges).length === 0)
+        (typeof currentChanges === 'object' &&
+          !Array.isArray(currentChanges) &&
+          Object.keys(currentChanges).length === 0)
       if (shouldInfer) {
         const inferred = deriveChangesFromSnapshots(mergedMeta.snapshotBefore, mergedMeta.snapshotAfter)
         if (inferred) mergedMeta.changes = inferred
@@ -279,8 +281,13 @@ export class CommandBus {
         container: effectiveOptions.ctx.container,
       }
       const afterResult = await runCommandInterceptorsAfter(
-        allInterceptors, commandId, effectiveOptions.input, result, interceptorCtx,
-        userFeatures, interceptorMetadata,
+        allInterceptors,
+        commandId,
+        effectiveOptions.input,
+        result,
+        interceptorCtx,
+        userFeatures,
+        interceptorMetadata,
       )
       if (afterResult.modifiedResult && typeof result === 'object' && result) {
         finalResult = { ...(result as object), ...afterResult.modifiedResult } as Awaited<TResult>
@@ -295,7 +302,7 @@ export class CommandBus {
   }
 
   async undo(undoToken: string, ctx: CommandRuntimeContext): Promise<void> {
-    const service = (ctx.container.resolve('actionLogService') as ActionLogService)
+    const service = ctx.container.resolve('actionLogService') as ActionLogService
     const log = await service.findByUndoToken(undoToken)
     if (!log) throw new Error('Undo token expired or not found')
     const handler = this.resolveHandler(log.commandId)
@@ -306,9 +313,7 @@ export class CommandBus {
     // Run beforeUndo command interceptors
     const allInterceptors = getAllCommandInterceptorInstances()
     let undoInterceptorMetadata = new Map<string, Record<string, unknown>>()
-    const userFeatures = allInterceptors.length
-      ? await this.resolveUserFeaturesForInterceptors(ctx)
-      : []
+    const userFeatures = allInterceptors.length ? await this.resolveUserFeaturesForInterceptors(ctx) : []
     if (allInterceptors.length) {
       const undoCtx = { input: log.commandPayload, logEntry: log, undoToken }
       const interceptorCtx: CommandInterceptorContext = {
@@ -318,7 +323,11 @@ export class CommandBus {
         container: ctx.container,
       }
       const beforeResult = await runCommandInterceptorsBeforeUndo(
-        allInterceptors, log.commandId, undoCtx, interceptorCtx, userFeatures,
+        allInterceptors,
+        log.commandId,
+        undoCtx,
+        interceptorCtx,
+        userFeatures,
       )
       if (!beforeResult.ok) {
         throw new CommandInterceptorError(beforeResult.error!.message)
@@ -343,8 +352,12 @@ export class CommandBus {
         container: ctx.container,
       }
       await runCommandInterceptorsAfterUndo(
-        allInterceptors, log.commandId, undoCtx, interceptorCtx,
-        userFeatures, undoInterceptorMetadata,
+        allInterceptors,
+        log.commandId,
+        undoCtx,
+        interceptorCtx,
+        userFeatures,
+        undoInterceptorMetadata,
       )
     }
 
@@ -356,9 +369,7 @@ export class CommandBus {
     const snapshotBefore = log.snapshotAfter ?? null
     const snapshotAfter = log.snapshotBefore ?? null
     const changes =
-      deriveChangesFromSnapshots(snapshotBefore, snapshotAfter)
-      ?? invertRecordedChanges(log.changesJson)
-      ?? undefined
+      deriveChangesFromSnapshots(snapshotBefore, snapshotAfter) ?? invertRecordedChanges(log.changesJson) ?? undefined
 
     const baseContext = asRecord(log.contextJson) ?? {}
     const context = {
@@ -388,7 +399,12 @@ export class CommandBus {
   private async resolveUserFeaturesForInterceptors(ctx: CommandRuntimeContext): Promise<string[]> {
     if (!ctx.auth) return []
     try {
-      type RbacLike = { getGrantedFeatures: (userId: string, opts: { tenantId: string | null; organizationId: string | null }) => Promise<string[]> }
+      type RbacLike = {
+        getGrantedFeatures: (
+          userId: string,
+          opts: { tenantId: string | null; organizationId: string | null },
+        ) => Promise<string[]>
+      }
       const rbac = ctx.container.resolve('rbacService') as RbacLike | undefined
       if (rbac?.getGrantedFeatures) {
         return await rbac.getGrantedFeatures(ctx.auth.sub, {
@@ -408,10 +424,11 @@ export class CommandBus {
     if (!handler) {
       const moduleName = commandId.split('.')[0]
       const registered = commandRegistry.list()
-      const sameModule = registered.filter((id) => id.split('.')[0] === moduleName)
-      const hint = sameModule.length > 0
-        ? ` Registered commands for module "${moduleName}": [${sameModule.join(', ')}].`
-        : ` No commands registered for module "${moduleName}". Ensure the command file is imported (side-effect) in the module's index.ts.`
+      const sameModule = registered.filter(id => id.split('.')[0] === moduleName)
+      const hint =
+        sameModule.length > 0
+          ? ` Registered commands for module "${moduleName}": [${sameModule.join(', ')}].`
+          : ` No commands registered for module "${moduleName}". Ensure the command file is imported (side-effect) in the module's index.ts.`
       throw new Error(`Command handler not registered for id ${commandId}.${hint}`)
     }
     return handler
@@ -419,7 +436,7 @@ export class CommandBus {
 
   private async prepareSnapshots<TInput, TResult>(
     handler: CommandHandler<TInput, TResult>,
-    options: CommandExecutionOptions<TInput>
+    options: CommandExecutionOptions<TInput>,
   ): Promise<{ before?: unknown }> {
     if (!handler.prepare) return {}
     try {
@@ -432,7 +449,7 @@ export class CommandBus {
   private async captureAfter<TInput, TResult>(
     handler: CommandHandler<TInput, TResult>,
     options: CommandExecutionOptions<TInput>,
-    result: TResult
+    result: TResult,
   ): Promise<unknown> {
     if (!handler.captureAfter) return undefined
     return handler.captureAfter(options.input, result, options.ctx)
@@ -442,7 +459,7 @@ export class CommandBus {
     handler: CommandHandler<TInput, TResult>,
     options: CommandExecutionOptions<TInput>,
     result: TResult,
-    snapshots: { before?: unknown; after?: unknown }
+    snapshots: { before?: unknown; after?: unknown },
   ): Promise<CommandLogMetadata | null> {
     if (!handler.buildLog) return null
     const args: CommandLogBuilderArgs<TInput, TResult> = {
@@ -454,7 +471,10 @@ export class CommandBus {
     return (await handler.buildLog(args)) || null
   }
 
-  private mergeMetadata(primary?: CommandLogMetadata | null, secondary?: CommandLogMetadata | null): CommandLogMetadata | null {
+  private mergeMetadata(
+    primary?: CommandLogMetadata | null,
+    secondary?: CommandLogMetadata | null,
+  ): CommandLogMetadata | null {
     if (!primary && !secondary) return null
     return {
       skipLog: secondary?.skipLog ?? primary?.skipLog ?? false,
@@ -478,18 +498,17 @@ export class CommandBus {
   private async persistLog<TInput>(
     commandId: string,
     options: CommandExecutionOptions<TInput>,
-    metadata: CommandLogMetadata | null
+    metadata: CommandLogMetadata | null,
   ): Promise<ActionLog | null> {
     if (!metadata) return null
     if (metadata.skipLog) return null
-    const resourceKind =
-      typeof metadata.resourceKind === 'string' ? metadata.resourceKind : null
+    const resourceKind = typeof metadata.resourceKind === 'string' ? metadata.resourceKind : null
     if (resourceKind && SKIPPED_ACTION_LOG_RESOURCE_KINDS.has(resourceKind)) {
       return null
     }
     let service: ActionLogService | null = null
     try {
-      service = (options.ctx.container.resolve('actionLogService') as ActionLogService)
+      service = options.ctx.container.resolve('actionLogService') as ActionLogService
     } catch {
       service = null
     }
@@ -510,17 +529,26 @@ export class CommandBus {
       if ('actionLabel' in metadata && metadata.actionLabel != null) payload.actionLabel = metadata.actionLabel
       if ('resourceKind' in metadata && metadata.resourceKind != null) payload.resourceKind = metadata.resourceKind
       if ('resourceId' in metadata && metadata.resourceId != null) payload.resourceId = metadata.resourceId
-      if ('parentResourceKind' in metadata && metadata.parentResourceKind != null) payload.parentResourceKind = metadata.parentResourceKind
-      if ('parentResourceId' in metadata && metadata.parentResourceId != null) payload.parentResourceId = metadata.parentResourceId
+      if ('parentResourceKind' in metadata && metadata.parentResourceKind != null)
+        payload.parentResourceKind = metadata.parentResourceKind
+      if ('parentResourceId' in metadata && metadata.parentResourceId != null)
+        payload.parentResourceId = metadata.parentResourceId
       if ('undoToken' in metadata && metadata.undoToken != null) payload.undoToken = metadata.undoToken
       if ('payload' in metadata && metadata.payload !== undefined) payload.commandPayload = metadata.payload
-      if ('snapshotBefore' in metadata && metadata.snapshotBefore !== undefined) payload.snapshotBefore = metadata.snapshotBefore
-      if ('snapshotAfter' in metadata && metadata.snapshotAfter !== undefined) payload.snapshotAfter = metadata.snapshotAfter
-      if ('changes' in metadata && metadata.changes !== undefined && metadata.changes !== null) payload.changes = metadata.changes
-      if ('context' in metadata && metadata.context !== undefined && metadata.context !== null) payload.context = metadata.context
+      if ('snapshotBefore' in metadata && metadata.snapshotBefore !== undefined)
+        payload.snapshotBefore = metadata.snapshotBefore
+      if ('snapshotAfter' in metadata && metadata.snapshotAfter !== undefined)
+        payload.snapshotAfter = metadata.snapshotAfter
+      if ('changes' in metadata && metadata.changes !== undefined && metadata.changes !== null)
+        payload.changes = metadata.changes
+      if ('context' in metadata && metadata.context !== undefined && metadata.context !== null)
+        payload.context = metadata.context
     }
 
-    const redoEnvelope = wrapRedoPayload('commandPayload' in payload ? (payload.commandPayload as unknown) : undefined, options.input)
+    const redoEnvelope = wrapRedoPayload(
+      'commandPayload' in payload ? (payload.commandPayload as unknown) : undefined,
+      options.input,
+    )
     payload.commandPayload = redoEnvelope
 
     return await service.log(payload as ActionLogCreateInput)
@@ -534,7 +562,7 @@ export class CommandBus {
     commandId: string,
     options: CommandExecutionOptions<unknown>,
     result: TResult,
-    metadata: CommandLogMetadata | null
+    metadata: CommandLogMetadata | null,
   ): Promise<void> {
     const resource = typeof metadata?.resourceKind === 'string' ? metadata.resourceKind : null
     if (!resource) return
@@ -554,7 +582,7 @@ export class CommandBus {
         inputRecord?.id,
         inputRecord?.entityId,
         inputRecord?.recordId,
-        inputEntity?.id
+        inputEntity?.id,
       )
 
       const organizationId = pickFirstIdentifier(
@@ -563,7 +591,7 @@ export class CommandBus {
         resultEntity?.organizationId,
         inputRecord?.organizationId,
         inputEntity?.organizationId,
-        ctx.selectedOrganizationId ?? ctx.auth?.orgId ?? null
+        ctx.selectedOrganizationId ?? ctx.auth?.orgId ?? null,
       )
 
       const tenantId = pickFirstIdentifier(
@@ -572,7 +600,7 @@ export class CommandBus {
         resultEntity?.tenantId,
         inputRecord?.tenantId,
         inputEntity?.tenantId,
-        ctx.auth?.tenantId ?? null
+        ctx.auth?.tenantId ?? null,
       )
 
       const fallbackTenant = pickFirstIdentifier(metadata?.tenantId, ctx.auth?.tenantId ?? null)
@@ -590,7 +618,7 @@ export class CommandBus {
         { id: recordId, organizationId, tenantId },
         fallbackTenant,
         `command:${commandId}:execute`,
-        aliasExtras
+        aliasExtras,
       )
     } catch (err) {
       if (isCrudCacheDebugEnabled()) {
@@ -606,7 +634,10 @@ export class CommandBus {
     if (!resource) return
     try {
       const recordId = pickFirstIdentifier(log.resourceId)
-      const organizationId = pickFirstIdentifier(log.organizationId, ctx.selectedOrganizationId ?? ctx.auth?.orgId ?? null)
+      const organizationId = pickFirstIdentifier(
+        log.organizationId,
+        ctx.selectedOrganizationId ?? ctx.auth?.orgId ?? null,
+      )
       const tenantId = pickFirstIdentifier(log.tenantId, ctx.auth?.tenantId ?? null)
       const fallbackTenant = pickFirstIdentifier(log.tenantId, ctx.auth?.tenantId ?? null)
       const aliasSet = new Set<string>()
@@ -622,7 +653,7 @@ export class CommandBus {
         { id: recordId, organizationId, tenantId },
         fallbackTenant,
         `command:${log.commandId}:undo`,
-        aliasExtras
+        aliasExtras,
       )
     } catch (err) {
       if (isCrudCacheDebugEnabled()) {
@@ -635,7 +666,7 @@ export class CommandBus {
 
   private async flushCrudSideEffects(container: AwilixContainer): Promise<void> {
     try {
-      const dataEngine = (container.resolve('dataEngine') as DataEngine)
+      const dataEngine = container.resolve('dataEngine') as DataEngine
       await dataEngine.flushOrmEntityChanges()
     } catch {
       // best-effort: failures should not block command execution

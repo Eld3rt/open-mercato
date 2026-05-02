@@ -3,6 +3,7 @@ import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
 import { splitCustomFieldPayload } from '@open-mercato/shared/lib/crud/custom-fields'
 import type { CommandRuntimeContext } from '@open-mercato/shared/lib/commands'
 import type { z } from 'zod'
+import { getTrimmedString, isNonEmptyString } from '../string/validation'
 
 export type ScopedContext = (CommandRuntimeContext | CrudCtx) & {
   auth: { tenantId?: string | null; orgId?: string | null } | null
@@ -138,8 +139,7 @@ export function parseScopedCommandInput<TSchema extends z.ZodTypeAny>(
 }
 
 function normalizeTenant(candidate: unknown): string | null {
-  if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim()
-  return null
+  return getTrimmedString(candidate) ?? null
 }
 
 function authIsSuperAdmin(auth: ScopedContext['auth']): boolean {
@@ -195,13 +195,14 @@ export function resolveCrudRecordId(
     const query = (parsed as Record<string, unknown>).query
     if (query && typeof query === 'object') {
       const candidate = (query as Record<string, unknown>)[queryParam]
-      if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim()
+      const trimmed = getTrimmedString(candidate)
+      if (trimmed) return trimmed
     }
   }
 
   if (ctx.request instanceof Request) {
-    const value = new URL(ctx.request.url).searchParams.get(queryParam)
-    if (value && value.trim().length > 0) return value.trim()
+    const value = getTrimmedString(new URL(ctx.request.url).searchParams.get(queryParam))
+    if (value) return value
   }
 
   const msg = resolveMessage(options.messages, 'idRequired')

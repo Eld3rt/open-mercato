@@ -68,9 +68,7 @@ export function removeUndefinedValues(
   obj: Record<string, unknown> | undefined | null,
 ): Record<string, unknown> | undefined {
   if (!isPlainObject(obj)) return undefined
-  const filtered = Object.fromEntries(
-    Object.entries(obj).filter(([, value]) => value !== undefined),
-  )
+  const filtered = Object.fromEntries(Object.entries(obj).filter(([, value]) => value !== undefined))
   return isEmpty(filtered) ? undefined : filtered
 }
 
@@ -84,16 +82,9 @@ export function removeUndefinedValues(
  * pickKeys({ a: 1, b: 2, c: 3 }, ['a', 'c'])
  * // { a: 1, c: 3 }
  */
-export function pickKeys(
-  obj: Record<string, unknown> | undefined | null,
-  keys: string[],
-): Record<string, unknown> {
+export function pickKeys(obj: Record<string, unknown> | undefined | null, keys: string[]): Record<string, unknown> {
   if (!isPlainObject(obj) || !Array.isArray(keys)) return {}
-  return Object.fromEntries(
-    keys
-      .filter((key) => key in obj)
-      .map((key) => [key, obj[key]]),
-  )
+  return Object.fromEntries(keys.filter(key => key in obj).map(key => [key, obj[key]]))
 }
 
 /**
@@ -106,13 +97,8 @@ export function pickKeys(
  * omitKeys({ a: 1, b: 2, c: 3 }, ['b'])
  * // { a: 1, c: 3 }
  */
-export function omitKeys(
-  obj: Record<string, unknown> | undefined | null,
-  keys: string[],
-): Record<string, unknown> {
+export function omitKeys(obj: Record<string, unknown> | undefined | null, keys: string[]): Record<string, unknown> {
   if (!isPlainObject(obj)) return {}
   const keysSet = new Set(keys)
-  return Object.fromEntries(
-    Object.entries(obj).filter(([key]) => !keysSet.has(key)),
-  )
+  return Object.fromEntries(Object.entries(obj).filter(([key]) => !keysSet.has(key)))
 }

@@ -3,10 +3,20 @@ import type { AwilixContainer } from 'awilix'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { buildScopedWhere } from '@open-mercato/shared/lib/api/crud'
 import { getAuthFromCookies, getAuthFromRequest, type AuthContext } from '@open-mercato/shared/lib/auth/server'
-import type { QueryEngine, Where, Sort, Page, QueryCustomFieldSource, QueryJoinEdge } from '@open-mercato/shared/lib/query/types'
+import type {
+  QueryEngine,
+  Where,
+  Sort,
+  Page,
+  QueryCustomFieldSource,
+  QueryJoinEdge,
+} from '@open-mercato/shared/lib/query/types'
 import { SortDir } from '@open-mercato/shared/lib/query/types'
 import type { DataEngine } from '@open-mercato/shared/lib/data/engine'
-import { resolveOrganizationScopeForRequest, type OrganizationScope } from '@open-mercato/core/modules/directory/utils/organizationScope'
+import {
+  resolveOrganizationScopeForRequest,
+  type OrganizationScope,
+} from '@open-mercato/core/modules/directory/utils/organizationScope'
 import { serializeOperationMetadata } from '@open-mercato/shared/lib/commands/operationMetadata'
 import { parseBooleanToken } from '@open-mercato/shared/lib/boolean'
 import { isPlainObject, removeUndefinedValues } from '@open-mercato/shared/lib/object/utils'
@@ -21,19 +31,21 @@ import { getAllSyncSubscribers } from './sync-subscriber-store'
 import { collectSyncSubscribers, runSyncBeforeEvent, runSyncAfterEvent } from './sync-event-runner'
 import type { SyncCrudEventPayload } from './sync-event-types'
 import type { RateLimitConfig } from '@open-mercato/shared/lib/ratelimit/types'
-import type {
-  CrudEventAction,
-  CrudEventsConfig,
-  CrudIndexerConfig,
-  CrudIdentifierResolver,
-} from './types'
+import type { CrudEventAction, CrudEventsConfig, CrudIndexerConfig, CrudIdentifierResolver } from './types'
 import {
   extractCustomFieldValuesFromPayload,
   extractAllCustomFieldEntries,
   decorateRecordWithCustomFields,
   loadCustomFieldDefinitionIndex,
 } from './custom-fields'
-import { serializeExport, normalizeExportFormat, defaultExportFilename, ensureColumns, type CrudExportFormat, type PreparedExport } from './exporters'
+import {
+  serializeExport,
+  normalizeExportFormat,
+  defaultExportFilename,
+  ensureColumns,
+  type CrudExportFormat,
+  type PreparedExport,
+} from './exporters'
 import { CrudHttpError, isCrudHttpError } from './errors'
 import type { CommandBus, CommandLogMetadata } from '@open-mercato/shared/lib/commands'
 import type { EntityId } from '@open-mercato/shared/modules/entities'
@@ -63,7 +75,10 @@ import { mergeIdFilter, parseIdsParam } from './ids'
 import { parseExtensionHeaders } from '../umes/extension-headers'
 
 type RbacServiceLike = {
-  getGrantedFeatures: (userId: string, opts: { tenantId: string | null; organizationId: string | null }) => Promise<string[]>
+  getGrantedFeatures: (
+    userId: string,
+    opts: { tenantId: string | null; organizationId: string | null },
+  ) => Promise<string[]>
 }
 
 export type CrudHooks<TCreate, TUpdate, TList> = {
@@ -163,9 +178,8 @@ type ColumnResolver = {
 function resolveAvailableExportFormats(list?: ListConfig<any>): CrudExportFormat[] {
   if (!list) return []
   if (list.export?.enabled === false) return []
-  const formats = list.export?.formats && list.export.formats.length > 0
-    ? [...list.export.formats]
-    : [...DEFAULT_EXPORT_FORMATS]
+  const formats =
+    list.export?.formats && list.export.formats.length > 0 ? [...list.export.formats] : [...DEFAULT_EXPORT_FORMATS]
   if (!list.export?.formats && list.allowCsv && !formats.includes('csv')) formats.push('csv')
   return Array.from(new Set(formats))
 }
@@ -194,14 +208,12 @@ function buildExportFromColumns(items: any[], columnsConfig: CrudExportColumnCon
   const columns: ColumnResolver[] = columnsConfig.map((col, idx) => {
     const fieldName = sanitizeFieldName(col.field || `field_${idx}`, used, idx)
     const header = col.header?.trim().length ? col.header!.trim() : col.field || `Field ${idx + 1}`
-    const resolver = col.resolve
-      ? col.resolve
-      : ((item: any) => (item != null ? (item as any)[col.field] : undefined))
+    const resolver = col.resolve ? col.resolve : (item: any) => (item != null ? (item as any)[col.field] : undefined)
     return { field: fieldName, header, resolve: resolver }
   })
-  const rows = items.map((item) => {
+  const rows = items.map(item => {
     const row: Record<string, unknown> = {}
-    columns.forEach((column) => {
+    columns.forEach(column => {
       try {
         row[column.field] = column.resolve(item)
       } catch {
@@ -222,7 +234,7 @@ function buildExportFromCsv(items: any[], csv: NonNullable<ListConfig<any>['csv'
     field: sanitizeFieldName(header || `column_${idx + 1}`, used, idx),
     header: header || `Column ${idx + 1}`,
   }))
-  const rows = items.map((item) => {
+  const rows = items.map(item => {
     const values = csv.row(item) || []
     const row: Record<string, unknown> = {}
     columns.forEach((column, idx) => {
@@ -234,7 +246,7 @@ function buildExportFromCsv(items: any[], csv: NonNullable<ListConfig<any>['csv'
 }
 
 function buildDefaultExport(items: any[]): PreparedExport {
-  const rows = items.map((item) => {
+  const rows = items.map(item => {
     if (item && typeof item === 'object' && !Array.isArray(item)) {
       return { ...(item as Record<string, unknown>) }
     }
@@ -290,7 +302,7 @@ function finalizeExportFilename(list: ListConfig<any>, format: CrudExportFormat,
 
 function normalizeFullRecordForExport(input: any): any {
   if (!input || typeof input !== 'object') return input
-  if (Array.isArray(input)) return input.map((item) => normalizeFullRecordForExport(item))
+  if (Array.isArray(input)) return input.map(item => normalizeFullRecordForExport(item))
   const record: Record<string, unknown> = {}
 
   for (const [key, value] of Object.entries(input)) {
@@ -334,7 +346,12 @@ export type CrudCommandActionConfig = {
   commandId: string
   schema?: z.ZodTypeAny
   mapInput?: (args: { parsed: any; raw: any; ctx: CrudCtx }) => Promise<any> | any
-  metadata?: (args: { input: any; parsed: any; raw: any; ctx: CrudCtx }) => Promise<CommandLogMetadata | null> | CommandLogMetadata | null
+  metadata?: (args: {
+    input: any
+    parsed: any
+    raw: any
+    ctx: CrudCtx
+  }) => Promise<CommandLogMetadata | null> | CommandLogMetadata | null
   response?: (args: { result: any; logEntry: any | null; ctx: CrudCtx }) => any
   status?: number
 }
@@ -373,7 +390,11 @@ export type CrudFactoryOptions<TCreate, TUpdate, TList> = {
 
 function deriveResourceFromActions(actions: CrudFactoryOptions<any, any, any>['actions']): string | null {
   if (!actions) return null
-  const ids: Array<string | null | undefined> = [actions.create?.commandId, actions.update?.commandId, actions.delete?.commandId]
+  const ids: Array<string | null | undefined> = [
+    actions.create?.commandId,
+    actions.update?.commandId,
+    actions.delete?.commandId,
+  ]
   for (const id of ids) {
     const resolved = deriveResourceFromCommandId(id)
     if (resolved) return resolved
@@ -383,7 +404,7 @@ function deriveResourceFromActions(actions: CrudFactoryOptions<any, any, any>['a
 
 function resolveResourceAliasesList(
   opts: CrudFactoryOptions<any, any, any>,
-  ormEntityName: string | undefined
+  ormEntityName: string | undefined,
 ): { primary: string; aliases: string[] } {
   const eventsResource =
     opts.events?.module && opts.events?.entity ? `${opts.events.module}.${opts.events.entity}` : null
@@ -393,7 +414,10 @@ function resolveResourceAliasesList(
   return { primary, aliases: [] }
 }
 
-function mergeCommandMetadata(base: CommandLogMetadata, override: CommandLogMetadata | null | undefined): CommandLogMetadata {
+function mergeCommandMetadata(
+  base: CommandLogMetadata,
+  override: CommandLogMetadata | null | undefined,
+): CommandLogMetadata {
   if (!override) return base
   const mergedContext = {
     ...(base.context ?? {}),
@@ -425,9 +449,12 @@ function attachOperationHeader(res: Response, logEntry: any) {
   const actionLabel = typeof logEntry.actionLabel === 'string' ? logEntry.actionLabel : null
   const resourceKind = typeof logEntry.resourceKind === 'string' ? logEntry.resourceKind : null
   const resourceId = typeof logEntry.resourceId === 'string' ? logEntry.resourceId : null
-  const createdAt = logEntry.createdAt instanceof Date
-    ? logEntry.createdAt.toISOString()
-    : (typeof logEntry.createdAt === 'string' ? logEntry.createdAt : new Date().toISOString())
+  const createdAt =
+    logEntry.createdAt instanceof Date
+      ? logEntry.createdAt.toISOString()
+      : typeof logEntry.createdAt === 'string'
+        ? logEntry.createdAt
+        : new Date().toISOString()
   const headerValue = serializeOperationMetadata({
     id,
     undoToken,
@@ -467,7 +494,10 @@ const LIFECYCLE_ACTION_MAP: Record<string, { before: string; after: string }> = 
   deleted: { before: 'deleting', after: 'deleted' },
 }
 
-function deriveLifecycleEventIds(events: CrudEventsConfig | undefined, action: 'created' | 'updated' | 'deleted'): { beforeEventId: string | null; afterEventId: string | null; entity: string | null } {
+function deriveLifecycleEventIds(
+  events: CrudEventsConfig | undefined,
+  action: 'created' | 'updated' | 'deleted',
+): { beforeEventId: string | null; afterEventId: string | null; entity: string | null } {
   if (!events?.module || !events?.entity) return { beforeEventId: null, afterEventId: null, entity: null }
   const mapping = LIFECYCLE_ACTION_MAP[action]
   if (!mapping) return { beforeEventId: null, afterEventId: null, entity: null }
@@ -506,9 +536,7 @@ function buildSyncPayload(
   }
 }
 
-function collectAndRunGuards(
-  container: AwilixContainer,
-): { allGuards: MutationGuard[] } {
+function collectAndRunGuards(container: AwilixContainer): { allGuards: MutationGuard[] } {
   const allGuards = [...getAllMutationGuardInstances()]
   const legacyGuard = bridgeLegacyGuard(container)
   if (legacyGuard) allGuards.push(legacyGuard)
@@ -552,9 +580,7 @@ function toInterceptorHeaders(headers: Headers): Record<string, string> {
   return output
 }
 
-function cleanInterceptorObject(
-  value: Record<string, unknown> | undefined,
-): Record<string, unknown> | undefined {
+function cleanInterceptorObject(value: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   return removeUndefinedValues(value)
 }
 
@@ -637,7 +663,7 @@ export async function logCrudAccess(options: LogCrudAccessOptions) {
   const idField = options.idField || 'id'
   const tenantId = options.tenantId ?? auth.tenantId ?? null
   const organizationId = options.organizationId ?? auth.orgId ?? null
-  const actorUserId = (auth.keyId ?? auth.sub) ?? null
+  const actorUserId = auth.keyId ?? auth.sub ?? null
   const fields = options.fields && options.fields.length ? options.fields : collectFieldNames(items)
   const accessType = options.accessType ?? determineAccessType(options.query, items.length, idField)
 
@@ -675,14 +701,14 @@ export async function logCrudAccess(options: LogCrudAccessOptions) {
     }
     if (fields.length > 0) payload.fields = fields
     if (Object.keys(context).length > 0) payload.context = context
-      tasks.push(
-        Promise.resolve(service.log(payload)).catch((err) => {
-          try {
-            console.error('[crud] failed to record access log', { err, payload })
-          } catch {}
-          return undefined
-        })
-      )
+    tasks.push(
+      Promise.resolve(service.log(payload)).catch(err => {
+        try {
+          console.error('[crud] failed to record access log', { err, payload })
+        } catch {}
+        return undefined
+      }),
+    )
   }
   if (tasks.length > 0) await Promise.all(tasks)
 }
@@ -722,7 +748,10 @@ function serializeSearchParams(params: URLSearchParams): string {
     existing.push(value)
     grouped.set(key, existing)
   })
-  const normalized: Array<[string, string[]]> = Array.from(grouped.entries()).map(([key, values]) => [key, values.sort((a, b) => a.localeCompare(b))])
+  const normalized: Array<[string, string[]]> = Array.from(grouped.entries()).map(([key, values]) => [
+    key,
+    values.sort((a, b) => a.localeCompare(b)),
+  ])
   normalized.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
   return JSON.stringify(normalized)
 }
@@ -731,7 +760,10 @@ function buildCrudCacheKey(resource: string, request: Request, ctx: CrudCtx): st
   const url = new URL(request.url)
   const scopeIds = collectScopeOrganizationIds(ctx)
   const scopeSegment = scopeIds.length
-    ? scopeIds.map((id) => normalizeTagSegment(id)).sort((a, b) => a.localeCompare(b)).join(',')
+    ? scopeIds
+        .map(id => normalizeTagSegment(id))
+        .sort((a, b) => a.localeCompare(b))
+        .join(',')
     : 'none'
   return [
     'crud',
@@ -757,16 +789,19 @@ function extractRecordIds(items: any[], idField: string): string[] {
   return Array.from(ids)
 }
 
-export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: CrudFactoryOptions<TCreate, TUpdate, TList>) {
+export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(
+  opts: CrudFactoryOptions<TCreate, TUpdate, TList>,
+) {
   const metadata = opts.metadata || {}
   const ormCfg = {
     entity: opts.orm.entity,
     idField: opts.orm.idField ?? 'id',
-    orgField: opts.orm.orgField === null ? null : opts.orm.orgField ?? 'organizationId',
-    tenantField: opts.orm.tenantField === null ? null : opts.orm.tenantField ?? 'tenantId',
-    softDeleteField: opts.orm.softDeleteField === null ? null : opts.orm.softDeleteField ?? 'deletedAt',
+    orgField: opts.orm.orgField === null ? null : (opts.orm.orgField ?? 'organizationId'),
+    tenantField: opts.orm.tenantField === null ? null : (opts.orm.tenantField ?? 'tenantId'),
+    softDeleteField: opts.orm.softDeleteField === null ? null : (opts.orm.softDeleteField ?? 'deletedAt'),
   }
-  const entityName = typeof ormCfg.entity?.name === 'string' && ormCfg.entity.name.length > 0 ? ormCfg.entity.name : undefined
+  const entityName =
+    typeof ormCfg.entity?.name === 'string' && ormCfg.entity.name.length > 0 ? ormCfg.entity.name : undefined
   const resourceInfo = resolveResourceAliasesList(opts, entityName)
   const resourceKind = resourceInfo.primary
   const resourceAliases = resourceInfo.aliases
@@ -825,7 +860,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       cfProfiler.end(extra)
     }
     try {
-      const em = (ctx.container.resolve('em') as EntityManager)
+      const em = ctx.container.resolve('em') as EntityManager
       const organizationIds =
         Array.isArray(ctx.organizationIds) && ctx.organizationIds.length
           ? ctx.organizationIds
@@ -837,20 +872,15 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         organizationIds,
       })
       cfProfiler.mark('definitions_loaded', { definitionCount: definitionIndex.size })
-      const decoratedItems = items.map((raw) => {
+      const decoratedItems = items.map(raw => {
         if (!raw || typeof raw !== 'object') return raw
         const item = raw as Record<string, unknown>
         const context = listCustomFieldDecorator.resolveContext
-          ? listCustomFieldDecorator.resolveContext(raw, ctx) ?? {}
+          ? (listCustomFieldDecorator.resolveContext(raw, ctx) ?? {})
           : {}
-        const organizationId =
-          context.organizationId ??
-          inferFieldValue(item, ['organization_id', 'organizationId'])
+        const organizationId = context.organizationId ?? inferFieldValue(item, ['organization_id', 'organizationId'])
         const tenantId =
-          context.tenantId ??
-          inferFieldValue(item, ['tenant_id', 'tenantId']) ??
-          ctx.auth?.tenantId ??
-          null
+          context.tenantId ?? inferFieldValue(item, ['tenant_id', 'tenantId']) ?? ctx.auth?.tenantId ?? null
         const decorated = decorateRecordWithCustomFields(item, definitionIndex, {
           organizationId: organizationId ?? null,
           tenantId: tenantId ?? null,
@@ -954,7 +984,11 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
     method: ApiInterceptorMethod
     body?: Record<string, unknown>
     query?: Record<string, unknown>
-  }): Promise<{ errorResponse: Response | null; requestPayload: InterceptorRequest; metadataByInterceptor: Record<string, Record<string, unknown> | undefined> }> {
+  }): Promise<{
+    errorResponse: Response | null
+    requestPayload: InterceptorRequest
+    metadataByInterceptor: Record<string, Record<string, unknown> | undefined>
+  }> {
     const interceptorContext = await buildInterceptorContext(args.ctx)
     const requestPayload: InterceptorRequest = {
       method: args.method,
@@ -977,7 +1011,11 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       context: contextWithHeaders,
     })
     if (!result.ok) {
-      return { errorResponse: json(result.body, { status: result.statusCode }), requestPayload, metadataByInterceptor: {} }
+      return {
+        errorResponse: json(result.body, { status: result.statusCode }),
+        requestPayload,
+        metadataByInterceptor: {},
+      }
     }
     return { errorResponse: null, requestPayload: result.request, metadataByInterceptor: result.metadataByInterceptor }
   }
@@ -991,9 +1029,15 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
     statusCode: number
     body: Record<string, unknown>
     headers?: Record<string, string>
-  }): Promise<{ ok: boolean; statusCode: number; body: Record<string, unknown>; headers: Record<string, string> } | null> {
+  }): Promise<{
+    ok: boolean
+    statusCode: number
+    body: Record<string, unknown>
+    headers: Record<string, string>
+  } | null> {
     const interceptorContext = await buildInterceptorContext(args.ctx)
-    if (!interceptorContext) return { ok: true, statusCode: args.statusCode, body: args.body, headers: args.headers ?? {} }
+    if (!interceptorContext)
+      return { ok: true, statusCode: args.statusCode, body: args.body, headers: args.headers ?? {} }
     const result = await runApiInterceptorsAfter({
       routePath: normalizeInterceptorRoutePath(args.request),
       method: args.method,
@@ -1074,11 +1118,13 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       : null
     const fallbackOrgId = scopedOrgId ?? rawAuth?.orgId ?? null
     const rawScopeIds = scope?.filterIds
-    const scopedIds = Array.isArray(rawScopeIds) ? rawScopeIds.filter((id): id is string => typeof id === 'string' && id.length > 0) : null
+    const scopedIds = Array.isArray(rawScopeIds)
+      ? rawScopeIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+      : null
     if (!scope) {
       organizationIds = fallbackOrgId ? [fallbackOrgId] : null
     } else if (scopedIds === null) {
-      organizationIds = scope.allowedIds === null ? null : (fallbackOrgId ? [fallbackOrgId] : null)
+      organizationIds = scope.allowedIds === null ? null : fallbackOrgId ? [fallbackOrgId] : null
     } else if (scopedIds.length > 0) {
       organizationIds = Array.from(new Set(scopedIds))
     } else if (fallbackOrgId) {
@@ -1141,7 +1187,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         ctx,
         request,
         method: 'GET',
-        query: (validated as Record<string, unknown>),
+        query: validated as Record<string, unknown>,
       })
       if (beforeInterceptors.errorResponse) {
         finishProfile({ result: 'interceptor_before_blocked' })
@@ -1169,13 +1215,12 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const exportPageSize = exportRequested ? resolveExportBatchSize(opts.list, requestedPageSize) : requestedPageSize
       const exportScopeParam = (queryParams as any).exportScope ?? (queryParams as any).export_scope
       const exportScope = typeof exportScopeParam === 'string' ? exportScopeParam.toLowerCase() : null
-      const exportFullRequested = exportRequested && (exportScope === 'full' || parseBooleanToken((queryParams as any).full) === true)
+      const exportFullRequested =
+        exportRequested && (exportScope === 'full' || parseBooleanToken((queryParams as any).full) === true)
       profiler.mark('export_configured', { exportRequested, exportFullRequested })
 
       const cacheEnabled = isCrudCacheEnabled() && !exportRequested
-      const cacheTimerStart = cacheEnabled && isCrudCacheDebugEnabled()
-        ? process.hrtime.bigint()
-        : null
+      const cacheTimerStart = cacheEnabled && isCrudCacheDebugEnabled() ? process.hrtime.bigint() : null
       const cache = cacheEnabled ? resolveCrudCache(ctx.container) : null
       const cacheKey = cacheEnabled ? buildCrudCacheKey(resourceKind, request, ctx) : null
       let cacheStatus: 'hit' | 'miss' = 'miss'
@@ -1218,7 +1263,11 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         if (!tags.size) return
         try {
-          await cache.set(cacheKey, { payload: safeClone(payload), generatedAt: Date.now() }, { tags: Array.from(tags) })
+          await cache.set(
+            cacheKey,
+            { payload: safeClone(payload), generatedAt: Date.now() },
+            { tags: Array.from(tags) },
+          )
           debugCrudCache('store', {
             resource: resourceKind,
             key: cacheKey,
@@ -1268,7 +1317,12 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         cacheStatus = 'hit'
         profiler.mark('cache_hit', { generatedAt: cachedValue.generatedAt ?? null })
         const payload = safeClone(cachedValue.payload)
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !Array.isArray((payload as any).items)) {
+        if (
+          !payload ||
+          typeof payload !== 'object' ||
+          Array.isArray(payload) ||
+          !Array.isArray((payload as any).items)
+        ) {
           cacheStatus = 'miss'
           profiler.mark('cache_payload_invalid', {
             payloadType: Array.isArray(payload) ? 'array' : typeof payload,
@@ -1315,7 +1369,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         if (!cacheAfterInterceptors.ok) {
           finishProfile({ result: 'interceptor_after_failed', cacheStatus })
-          return json(cacheAfterInterceptors.body, { status: cacheAfterInterceptors.statusCode, headers: cacheAfterInterceptors.headers })
+          return json(cacheAfterInterceptors.body, {
+            status: cacheAfterInterceptors.statusCode,
+            headers: cacheAfterInterceptors.headers,
+          })
         }
         Object.assign(payload, cacheAfterInterceptors.body)
         await enrichListPayload(payload, ctx, profiler)
@@ -1328,7 +1385,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       // Prefer query engine when configured
       if (opts.list.entityId && opts.list.fields) {
         profiler.mark('query_engine_prepare')
-        const qe = (ctx.container.resolve('queryEngine') as QueryEngine)
+        const qe = ctx.container.resolve('queryEngine') as QueryEngine
         profiler.mark('query_engine_resolved')
         const sortFieldRaw = (queryParams as any).sortField || 'id'
         const sortDirRaw = ((queryParams as any).sortDir || 'asc').toLowerCase() === 'desc' ? SortDir.Desc : SortDir.Asc
@@ -1339,7 +1396,9 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           : { page: requestedPage, pageSize: requestedPageSize }
         const filters = exportFullRequested
           ? ({} as Where<any>)
-          : (opts.list.buildFilters ? await opts.list.buildFilters(validated as any, ctx) : ({} as Where<any>))
+          : opts.list.buildFilters
+            ? await opts.list.buildFilters(validated as any, ctx)
+            : ({} as Where<any>)
         const mergedFilters = exportFullRequested ? filters : mergeIdFilter(filters, parsedIds)
         const withDeleted = parseBooleanToken((queryParams as any).withDeleted) === true
         profiler.mark('filters_ready', { withDeleted })
@@ -1370,7 +1429,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           }
           if (!emptyAfterInterceptors.ok) {
             finishProfile({ result: 'interceptor_after_failed', cacheStatus, itemCount: 0, total: 0 })
-            return json(emptyAfterInterceptors.body, { status: emptyAfterInterceptors.statusCode, headers: emptyAfterInterceptors.headers })
+            return json(emptyAfterInterceptors.body, {
+              status: emptyAfterInterceptors.statusCode,
+              headers: emptyAfterInterceptors.headers,
+            })
           }
           Object.assign(emptyPayload, emptyAfterInterceptors.body)
           await maybeStoreCrudCache(emptyPayload)
@@ -1444,9 +1506,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
 
         if (exportRequested && requestedExport) {
           const total = typeof res.total === 'number' ? res.total : rawItems.length
-          const initialExportItems = exportFullRequested
-            ? rawItems.map(normalizeFullRecordForExport)
-            : transformedItems
+          const initialExportItems = exportFullRequested ? rawItems.map(normalizeFullRecordForExport) : transformedItems
           let exportItems = [...initialExportItems]
           if (total > exportItems.length) {
             const exportPageSizeNumber = typeof page.pageSize === 'number' ? page.pageSize : exportPageSize
@@ -1478,7 +1538,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           const fallbackBase = `${opts.events?.entity || resourceKind || 'list'}${exportFullRequested ? '_full' : ''}`
           const filename = finalizeExportFilename(opts.list, requestedExport, fallbackBase)
           const serialized = serializeExport(prepared, requestedExport)
-          const exportPayload = { items: exportItems, total, page: 1, pageSize: exportItems.length, totalPages: 1, ...(res.meta ? { meta: res.meta } : {}) }
+          const exportPayload = {
+            items: exportItems,
+            total,
+            page: 1,
+            pageSize: exportItems.length,
+            totalPages: 1,
+            ...(res.meta ? { meta: res.meta } : {}),
+          }
           await opts.hooks?.afterList?.(exportPayload, { ...ctx, query: validated as any })
           profiler.mark('after_list_hook')
           const response = new Response(serialized.body, {
@@ -1534,7 +1601,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         if (!afterInterceptors.ok) {
           finishProfile({ result: 'interceptor_after_failed', cacheStatus })
-          return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+          return json(afterInterceptors.body, {
+            status: afterInterceptors.statusCode,
+            headers: afterInterceptors.headers,
+          })
         }
         Object.assign(payload, afterInterceptors.body)
         await enrichListPayload(payload, ctx, profiler)
@@ -1553,7 +1623,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
 
       // Fallback: plain ORM list
       profiler.mark('orm_fallback_prepare')
-      const em = (ctx.container.resolve('em') as any)
+      const em = ctx.container.resolve('em') as any
       const repo = em.getRepository(ormCfg.entity)
       profiler.mark('orm_repo_ready')
       if (ormCfg.orgField && ctx.organizationIds && ctx.organizationIds.length === 0) {
@@ -1589,7 +1659,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         if (!fallbackEmptyAfterInterceptors.ok) {
           finishProfile({ result: 'interceptor_after_failed', cacheStatus, itemCount: 0, total: 0, branch: 'fallback' })
-          return json(fallbackEmptyAfterInterceptors.body, { status: fallbackEmptyAfterInterceptors.statusCode, headers: fallbackEmptyAfterInterceptors.headers })
+          return json(fallbackEmptyAfterInterceptors.body, {
+            status: fallbackEmptyAfterInterceptors.statusCode,
+            headers: fallbackEmptyAfterInterceptors.headers,
+          })
         }
         Object.assign(emptyPayload, fallbackEmptyAfterInterceptors.body)
         await maybeStoreCrudCache(emptyPayload)
@@ -1606,21 +1679,18 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       }
       const fallbackFilters = exportFullRequested
         ? ({} as Where<any>)
-        : (opts.list.buildFilters ? await opts.list.buildFilters(validated as any, ctx) : ({} as Where<any>))
-      const mergedFallbackFilters = exportFullRequested
-        ? fallbackFilters
-        : mergeIdFilter(fallbackFilters, parsedIds)
-      const where: any = buildScopedWhere(
-        mergedFallbackFilters as Record<string, any>,
-        {
-          organizationId: ormCfg.orgField ? (ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null) : undefined,
-          organizationIds: ormCfg.orgField ? ctx.organizationIds ?? undefined : undefined,
-          tenantId: ormCfg.tenantField ? ctx.auth.tenantId : undefined,
-          orgField: ormCfg.orgField,
-          tenantField: ormCfg.tenantField,
-          softDeleteField: ormCfg.softDeleteField,
-        }
-      )
+        : opts.list.buildFilters
+          ? await opts.list.buildFilters(validated as any, ctx)
+          : ({} as Where<any>)
+      const mergedFallbackFilters = exportFullRequested ? fallbackFilters : mergeIdFilter(fallbackFilters, parsedIds)
+      const where: any = buildScopedWhere(mergedFallbackFilters as Record<string, any>, {
+        organizationId: ormCfg.orgField ? (ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null) : undefined,
+        organizationIds: ormCfg.orgField ? (ctx.organizationIds ?? undefined) : undefined,
+        tenantId: ormCfg.tenantField ? ctx.auth.tenantId : undefined,
+        orgField: ormCfg.orgField,
+        tenantField: ormCfg.tenantField,
+        softDeleteField: ormCfg.softDeleteField,
+      })
       let list = await repo.find(where)
       profiler.mark('orm_query_complete', { itemCount: Array.isArray(list) ? list.length : 0 })
       list = await decorateItemsWithCustomFields(list, ctx)
@@ -1667,7 +1737,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const fallbackBase = `${opts.events?.entity || resourceKind || 'list'}${exportFullRequested ? '_full' : ''}`
         const filename = finalizeExportFilename(opts.list, requestedExport, fallbackBase)
         const serialized = serializeExport(prepared, requestedExport)
-        await opts.hooks?.afterList?.({ items: exportItems, total: exportItems.length, page: 1, pageSize: exportItems.length, totalPages: 1 }, { ...ctx, query: validated as any })
+        await opts.hooks?.afterList?.(
+          { items: exportItems, total: exportItems.length, page: 1, pageSize: exportItems.length, totalPages: 1 },
+          { ...ctx, query: validated as any },
+        )
         profiler.mark('after_list_hook')
         const response = new Response(serialized.body, {
           headers: {
@@ -1706,7 +1779,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       }
       if (!fallbackAfterInterceptors.ok) {
         finishProfile({ result: 'interceptor_after_failed', cacheStatus, branch: 'fallback' })
-        return json(fallbackAfterInterceptors.body, { status: fallbackAfterInterceptors.statusCode, headers: fallbackAfterInterceptors.headers })
+        return json(fallbackAfterInterceptors.body, {
+          status: fallbackAfterInterceptors.statusCode,
+          headers: fallbackAfterInterceptors.headers,
+        })
       }
       Object.assign(payload, fallbackAfterInterceptors.body)
       await enrichListPayload(payload, ctx, profiler)
@@ -1750,7 +1826,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       let interceptorMetadata: Record<string, Record<string, unknown> | undefined> = {}
 
       if (useCommand) {
-        const commandBus = (ctx.container.resolve('commandBus') as CommandBus)
+        const commandBus = ctx.container.resolve('commandBus') as CommandBus
         const action = opts.actions!.create!
         const parsed = action.schema ? action.schema.parse(body) : body
         const beforeInterceptors = await applyInterceptorsBefore({
@@ -1765,7 +1841,9 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const interceptedBody = interceptorRequestPayload.body ?? {}
         const reparsed = action.schema ? action.schema.parse(interceptedBody) : interceptedBody
         let input = action.mapInput ? await action.mapInput({ parsed: reparsed, raw: interceptedBody, ctx }) : reparsed
-        const userMetadata = action.metadata ? await action.metadata({ input, parsed: reparsed, raw: interceptedBody, ctx }) : null
+        const userMetadata = action.metadata
+          ? await action.metadata({ input, parsed: reparsed, raw: interceptedBody, ctx })
+          : null
 
         // Sync before-event (*.creating) — command path
         const createLifecycleCmd = deriveLifecycleEventIds(opts.events as CrudEventsConfig | undefined, 'created')
@@ -1774,15 +1852,28 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           if (syncSubs.length) {
             const em = ctx.container.resolve('em') as EntityManager
             const syncPayload = buildSyncPayload(
-              { eventId: createLifecycleCmd.beforeEventId, entity: createLifecycleCmd.entity!, operation: 'create', timing: 'before', resourceId: null, userId: ctx.auth.sub, organizationId: ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null, tenantId: ctx.auth.tenantId!, em, request },
+              {
+                eventId: createLifecycleCmd.beforeEventId,
+                entity: createLifecycleCmd.entity!,
+                operation: 'create',
+                timing: 'before',
+                resourceId: null,
+                userId: ctx.auth.sub,
+                organizationId: ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null,
+                tenantId: ctx.auth.tenantId!,
+                em,
+                request,
+              },
               { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined },
             )
             const syncResult = await runSyncBeforeEvent(syncSubs, syncPayload, ctx.container)
             if (!syncResult.ok) {
-              return json(syncResult.errorBody ?? { error: 'Operation blocked' }, { status: syncResult.errorStatus ?? 422 })
+              return json(syncResult.errorBody ?? { error: 'Operation blocked' }, {
+                status: syncResult.errorStatus ?? 422,
+              })
             }
             if (syncResult.modifiedPayload && typeof input === 'object' && input) {
-              input = { ...input as Record<string, unknown>, ...syncResult.modifiedPayload }
+              input = { ...(input as Record<string, unknown>), ...syncResult.modifiedPayload }
             }
           }
         }
@@ -1794,7 +1885,11 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           context: { cacheAliases: resourceTargets },
         }
         const metadataToSend = mergeCommandMetadata(baseMetadata, userMetadata)
-        const { result, logEntry } = await commandBus.execute(action.commandId, { input, ctx, metadata: metadataToSend })
+        const { result, logEntry } = await commandBus.execute(action.commandId, {
+          input,
+          ctx,
+          metadata: metadataToSend,
+        })
 
         // Sync after-event (*.created) — command path
         if (createLifecycleCmd.afterEventId && ctx.auth.tenantId) {
@@ -1802,7 +1897,18 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           if (syncAfterSubs.length) {
             const em = ctx.container.resolve('em') as EntityManager
             const syncPayload = buildSyncPayload(
-              { eventId: createLifecycleCmd.afterEventId, entity: createLifecycleCmd.entity!, operation: 'create', timing: 'after', resourceId: (result as Record<string, unknown>)?.id as string ?? null, userId: ctx.auth.sub, organizationId: ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null, tenantId: ctx.auth.tenantId!, em, request },
+              {
+                eventId: createLifecycleCmd.afterEventId,
+                entity: createLifecycleCmd.entity!,
+                operation: 'create',
+                timing: 'after',
+                resourceId: ((result as Record<string, unknown>)?.id as string) ?? null,
+                userId: ctx.auth.sub,
+                organizationId: ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null,
+                tenantId: ctx.auth.tenantId!,
+                em,
+                request,
+              },
               { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined },
             )
             await runSyncAfterEvent(syncAfterSubs, syncPayload, ctx.container)
@@ -1811,7 +1917,12 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
 
         const payload = action.response ? action.response({ result, logEntry, ctx }) : result
         let resolvedPayload = await Promise.resolve(payload)
-        if (interceptorRequestPayload && resolvedPayload && typeof resolvedPayload === 'object' && !Array.isArray(resolvedPayload)) {
+        if (
+          interceptorRequestPayload &&
+          resolvedPayload &&
+          typeof resolvedPayload === 'object' &&
+          !Array.isArray(resolvedPayload)
+        ) {
           const afterInterceptors = await applyInterceptorsAfter({
             ctx,
             request,
@@ -1822,7 +1933,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
             body: resolvedPayload as Record<string, unknown>,
           })
           if (afterInterceptors && !afterInterceptors.ok) {
-            return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+            return json(afterInterceptors.body, {
+              status: afterInterceptors.statusCode,
+              headers: afterInterceptors.headers,
+            })
           }
           if (afterInterceptors?.ok) resolvedPayload = afterInterceptors.body
         }
@@ -1860,15 +1974,28 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         if (syncSubs.length) {
           const em = ctx.container.resolve('em') as EntityManager
           const syncPayload = buildSyncPayload(
-            { eventId: createLifecycle.beforeEventId, entity: createLifecycle.entity!, operation: 'create', timing: 'before', resourceId: null, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
+            {
+              eventId: createLifecycle.beforeEventId,
+              entity: createLifecycle.entity!,
+              operation: 'create',
+              timing: 'before',
+              resourceId: null,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            },
             { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined },
           )
           const syncResult = await runSyncBeforeEvent(syncSubs, syncPayload, ctx.container)
           if (!syncResult.ok) {
-            return json(syncResult.errorBody ?? { error: 'Operation blocked' }, { status: syncResult.errorStatus ?? 422 })
+            return json(syncResult.errorBody ?? { error: 'Operation blocked' }, {
+              status: syncResult.errorStatus ?? 422,
+            })
           }
           if (syncResult.modifiedPayload && typeof input === 'object' && input) {
-            input = createConfig.schema.parse({ ...input as Record<string, unknown>, ...syncResult.modifiedPayload })
+            input = createConfig.schema.parse({ ...(input as Record<string, unknown>), ...syncResult.modifiedPayload })
           }
         }
       }
@@ -1881,27 +2008,33 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const { allGuards } = collectAndRunGuards(ctx.container)
       let createGuardAfterCallbacks: Array<{ guard: MutationGuard; metadata: Record<string, unknown> | null }> = []
       if (allGuards.length && ctx.auth.tenantId) {
-        const guardResult = await runMutationGuards(allGuards, {
-          tenantId: ctx.auth.tenantId,
-          organizationId: scopeOrganizationId,
-          userId: ctx.auth.sub,
-          resourceKind,
-          resourceId: null,
-          operation: 'create',
-          requestMethod: request.method,
-          requestHeaders: request.headers,
-          mutationPayload: input && typeof input === 'object' ? (input as Record<string, unknown>) : null,
-        }, { userFeatures: userFeatures ?? [] })
+        const guardResult = await runMutationGuards(
+          allGuards,
+          {
+            tenantId: ctx.auth.tenantId,
+            organizationId: scopeOrganizationId,
+            userId: ctx.auth.sub,
+            resourceKind,
+            resourceId: null,
+            operation: 'create',
+            requestMethod: request.method,
+            requestHeaders: request.headers,
+            mutationPayload: input && typeof input === 'object' ? (input as Record<string, unknown>) : null,
+          },
+          { userFeatures: userFeatures ?? [] },
+        )
         if (!guardResult.ok) {
-          return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, { status: guardResult.errorStatus ?? 422 })
+          return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, {
+            status: guardResult.errorStatus ?? 422,
+          })
         }
         if (guardResult.modifiedPayload && typeof input === 'object' && input) {
-          input = createConfig.schema.parse({ ...input as Record<string, unknown>, ...guardResult.modifiedPayload })
+          input = createConfig.schema.parse({ ...(input as Record<string, unknown>), ...guardResult.modifiedPayload })
         }
         createGuardAfterCallbacks = guardResult.afterSuccessCallbacks
       }
 
-      const de = (ctx.container.resolve('dataEngine') as DataEngine)
+      const de = ctx.container.resolve('dataEngine') as DataEngine
       const entityData = createConfig.mapToEntity(input as any, ctx)
       // Inject org/tenant
       const targetOrgId = ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null
@@ -1920,9 +2053,11 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const cfc = createConfig.customFields as Exclude<CustomFieldsConfig, false>
         const values = cfc.map
           ? cfc.map(body)
-          : (cfc.pickPrefixed ? extractCustomFieldValuesFromPayload(body as Record<string, unknown>) : {})
+          : cfc.pickPrefixed
+            ? extractCustomFieldValuesFromPayload(body as Record<string, unknown>)
+            : {}
         if (values && Object.keys(values).length > 0) {
-          const de = (ctx.container.resolve('dataEngine') as DataEngine)
+          const de = ctx.container.resolve('dataEngine') as DataEngine
           await de.setCustomFields({
             entityId: cfc.entityId as any,
             recordId: String((entity as any)[ormCfg.idField!]),
@@ -1939,9 +2074,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const createdEntityId = String((entity as any)[ormCfg.idField!])
       if (createGuardAfterCallbacks?.length && ctx.auth.tenantId) {
         await runGuardAfterSuccessCallbacks(createGuardAfterCallbacks, {
-          tenantId: ctx.auth.tenantId, organizationId: scopeOrganizationId, userId: ctx.auth.sub,
-          resourceKind, resourceId: createdEntityId, operation: 'create',
-          requestMethod: request.method, requestHeaders: request.headers,
+          tenantId: ctx.auth.tenantId,
+          organizationId: scopeOrganizationId,
+          userId: ctx.auth.sub,
+          resourceKind,
+          resourceId: createdEntityId,
+          operation: 'create',
+          requestMethod: request.method,
+          requestHeaders: request.headers,
         })
       }
 
@@ -1951,8 +2091,22 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         if (syncAfterSubs.length) {
           const em = ctx.container.resolve('em') as EntityManager
           const syncPayload = buildSyncPayload(
-            { eventId: createLifecycle.afterEventId, entity: createLifecycle.entity!, operation: 'create', timing: 'after', resourceId: createdEntityId, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-            { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined, entityData: snapshotEntity(entity) },
+            {
+              eventId: createLifecycle.afterEventId,
+              entity: createLifecycle.entity!,
+              operation: 'create',
+              timing: 'after',
+              resourceId: createdEntityId,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            },
+            {
+              payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined,
+              entityData: snapshotEntity(entity),
+            },
           )
           await runSyncAfterEvent(syncAfterSubs, syncPayload, ctx.container)
         }
@@ -1967,7 +2121,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         indexer: opts.indexer as CrudIndexerConfig | undefined,
       })
       await de.flushOrmEntityChanges()
-      await invalidateCrudCache(ctx.container, resourceKind, identifiers, ctx.auth.tenantId ?? null, 'created', resourceTargets)
+      await invalidateCrudCache(
+        ctx.container,
+        resourceKind,
+        identifiers,
+        ctx.auth.tenantId ?? null,
+        'created',
+        resourceTargets,
+      )
 
       let payload = createConfig.response ? createConfig.response(entity) : { id: createdEntityId }
       if (interceptorRequestPayload && payload && typeof payload === 'object' && !Array.isArray(payload)) {
@@ -1981,7 +2142,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           body: payload as Record<string, unknown>,
         })
         if (afterInterceptors && !afterInterceptors.ok) {
-          return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+          return json(afterInterceptors.body, {
+            status: afterInterceptors.statusCode,
+            headers: afterInterceptors.headers,
+          })
         }
         if (afterInterceptors?.ok) payload = afterInterceptors.body
       }
@@ -2015,7 +2179,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       let interceptorMetadata: Record<string, Record<string, unknown> | undefined> = {}
 
       if (useCommand) {
-        const commandBus = (ctx.container.resolve('commandBus') as CommandBus)
+        const commandBus = ctx.container.resolve('commandBus') as CommandBus
         const action = opts.actions!.update!
         const parsed = action.schema ? action.schema.parse(body) : body
         const beforeInterceptors = await applyInterceptorsBefore({
@@ -2030,7 +2194,9 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const interceptedBody = interceptorRequestPayload.body ?? {}
         const reparsed = action.schema ? action.schema.parse(interceptedBody) : interceptedBody
         let input = action.mapInput ? await action.mapInput({ parsed: reparsed, raw: interceptedBody, ctx }) : reparsed
-        const userMetadata = action.metadata ? await action.metadata({ input, parsed: reparsed, raw: interceptedBody, ctx }) : null
+        const userMetadata = action.metadata
+          ? await action.metadata({ input, parsed: reparsed, raw: interceptedBody, ctx })
+          : null
         const candidateId = normalizeIdentifierValue((input as Record<string, unknown> | null | undefined)?.id)
 
         // Sync before-event (*.updating) — command path
@@ -2045,15 +2211,31 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
               if (prevEntity) cmdUpdatePreviousData = snapshotEntity(prevEntity)
             }
             const syncPayload = buildSyncPayload(
-              { eventId: updateLifecycleCmd.beforeEventId, entity: updateLifecycleCmd.entity!, operation: 'update', timing: 'before', resourceId: candidateId ?? null, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-              { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined, previousData: cmdUpdatePreviousData },
+              {
+                eventId: updateLifecycleCmd.beforeEventId,
+                entity: updateLifecycleCmd.entity!,
+                operation: 'update',
+                timing: 'before',
+                resourceId: candidateId ?? null,
+                userId: ctx.auth.sub,
+                organizationId: scopeOrganizationId,
+                tenantId: ctx.auth.tenantId!,
+                em,
+                request,
+              },
+              {
+                payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined,
+                previousData: cmdUpdatePreviousData,
+              },
             )
             const syncResult = await runSyncBeforeEvent(syncSubs, syncPayload, ctx.container)
             if (!syncResult.ok) {
-              return json(syncResult.errorBody ?? { error: 'Operation blocked' }, { status: syncResult.errorStatus ?? 422 })
+              return json(syncResult.errorBody ?? { error: 'Operation blocked' }, {
+                status: syncResult.errorStatus ?? 422,
+              })
             }
             if (syncResult.modifiedPayload && typeof input === 'object' && input) {
-              input = { ...input as Record<string, unknown>, ...syncResult.modifiedPayload }
+              input = { ...(input as Record<string, unknown>), ...syncResult.modifiedPayload }
             }
           }
         }
@@ -2062,24 +2244,28 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const { allGuards: updateAllGuards } = collectAndRunGuards(ctx.container)
         let cmdUpdateGuardAfterCallbacks: Array<{ guard: MutationGuard; metadata: Record<string, unknown> | null }> = []
         if (updateAllGuards.length && ctx.auth.tenantId && candidateId) {
-          const guardResult = await runMutationGuards(updateAllGuards, {
-            tenantId: ctx.auth.tenantId,
-            organizationId: scopeOrganizationId,
-            userId: ctx.auth.sub,
-            resourceKind,
-            resourceId: candidateId,
-            operation: 'update',
-            requestMethod: request.method,
-            requestHeaders: request.headers,
-            mutationPayload: input && typeof input === 'object'
-              ? (input as Record<string, unknown>)
-              : null,
-          }, { userFeatures: updateUserFeatures ?? [] })
+          const guardResult = await runMutationGuards(
+            updateAllGuards,
+            {
+              tenantId: ctx.auth.tenantId,
+              organizationId: scopeOrganizationId,
+              userId: ctx.auth.sub,
+              resourceKind,
+              resourceId: candidateId,
+              operation: 'update',
+              requestMethod: request.method,
+              requestHeaders: request.headers,
+              mutationPayload: input && typeof input === 'object' ? (input as Record<string, unknown>) : null,
+            },
+            { userFeatures: updateUserFeatures ?? [] },
+          )
           if (!guardResult.ok) {
-            return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, { status: guardResult.errorStatus ?? 422 })
+            return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, {
+              status: guardResult.errorStatus ?? 422,
+            })
           }
           if (guardResult.modifiedPayload && typeof input === 'object' && input) {
-            input = { ...input as Record<string, unknown>, ...guardResult.modifiedPayload }
+            input = { ...(input as Record<string, unknown>), ...guardResult.modifiedPayload }
           }
           cmdUpdateGuardAfterCallbacks = guardResult.afterSuccessCallbacks
         }
@@ -2091,10 +2277,19 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         if (candidateId) baseMetadata.resourceId = candidateId
         const metadataToSend = mergeCommandMetadata(baseMetadata, userMetadata)
-        const { result, logEntry } = await commandBus.execute(action.commandId, { input, ctx, metadata: metadataToSend })
+        const { result, logEntry } = await commandBus.execute(action.commandId, {
+          input,
+          ctx,
+          metadata: metadataToSend,
+        })
         const payload = action.response ? action.response({ result, logEntry, ctx }) : result
         let resolvedPayload = await Promise.resolve(payload)
-        if (interceptorRequestPayload && resolvedPayload && typeof resolvedPayload === 'object' && !Array.isArray(resolvedPayload)) {
+        if (
+          interceptorRequestPayload &&
+          resolvedPayload &&
+          typeof resolvedPayload === 'object' &&
+          !Array.isArray(resolvedPayload)
+        ) {
           const afterInterceptors = await applyInterceptorsAfter({
             ctx,
             request,
@@ -2105,7 +2300,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
             body: resolvedPayload as Record<string, unknown>,
           })
           if (afterInterceptors && !afterInterceptors.ok) {
-            return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+            return json(afterInterceptors.body, {
+              status: afterInterceptors.statusCode,
+              headers: afterInterceptors.headers,
+            })
           }
           if (afterInterceptors?.ok) resolvedPayload = afterInterceptors.body
         }
@@ -2131,8 +2329,22 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           if (syncAfterSubs.length) {
             const em = ctx.container.resolve('em') as EntityManager
             const syncPayload = buildSyncPayload(
-              { eventId: updateLifecycleCmd.afterEventId, entity: updateLifecycleCmd.entity!, operation: 'update', timing: 'after', resourceId: candidateId ?? null, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-              { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined, previousData: cmdUpdatePreviousData },
+              {
+                eventId: updateLifecycleCmd.afterEventId,
+                entity: updateLifecycleCmd.entity!,
+                operation: 'update',
+                timing: 'after',
+                resourceId: candidateId ?? null,
+                userId: ctx.auth.sub,
+                organizationId: scopeOrganizationId,
+                tenantId: ctx.auth.tenantId!,
+                em,
+                request,
+              },
+              {
+                payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined,
+                previousData: cmdUpdatePreviousData,
+              },
             )
             await runSyncAfterEvent(syncAfterSubs, syncPayload, ctx.container)
           }
@@ -2168,21 +2380,37 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const syncSubs = collectSyncSubscribers(getAllSyncSubscribers(), updateLifecycle.beforeEventId)
         if (syncSubs.length) {
           const em = ctx.container.resolve('em') as EntityManager
-          const updateCandidateId = (input as Record<string, unknown>)?.id as string ?? null
+          const updateCandidateId = ((input as Record<string, unknown>)?.id as string) ?? null
           if (updateCandidateId) {
             const prevEntity = await em.findOne(ormCfg.entity as any, { [ormCfg.idField!]: updateCandidateId } as any)
             if (prevEntity) updatePreviousData = snapshotEntity(prevEntity)
           }
           const syncPayload = buildSyncPayload(
-            { eventId: updateLifecycle.beforeEventId, entity: updateLifecycle.entity!, operation: 'update', timing: 'before', resourceId: updateCandidateId, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-            { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined, previousData: updatePreviousData },
+            {
+              eventId: updateLifecycle.beforeEventId,
+              entity: updateLifecycle.entity!,
+              operation: 'update',
+              timing: 'before',
+              resourceId: updateCandidateId,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            },
+            {
+              payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined,
+              previousData: updatePreviousData,
+            },
           )
           const syncResult = await runSyncBeforeEvent(syncSubs, syncPayload, ctx.container)
           if (!syncResult.ok) {
-            return json(syncResult.errorBody ?? { error: 'Operation blocked' }, { status: syncResult.errorStatus ?? 422 })
+            return json(syncResult.errorBody ?? { error: 'Operation blocked' }, {
+              status: syncResult.errorStatus ?? 422,
+            })
           }
           if (syncResult.modifiedPayload && typeof input === 'object' && input) {
-            input = updateConfig.schema.parse({ ...input as Record<string, unknown>, ...syncResult.modifiedPayload })
+            input = updateConfig.schema.parse({ ...(input as Record<string, unknown>), ...syncResult.modifiedPayload })
           }
         }
       }
@@ -2198,22 +2426,28 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const { allGuards: updateAllGuards } = collectAndRunGuards(ctx.container)
       let updateGuardAfterCallbacks: Array<{ guard: MutationGuard; metadata: Record<string, unknown> | null }> = []
       if (updateAllGuards.length && ctx.auth.tenantId) {
-        const guardResult = await runMutationGuards(updateAllGuards, {
-          tenantId: ctx.auth.tenantId,
-          organizationId: scopeOrganizationId,
-          userId: ctx.auth.sub,
-          resourceKind,
-          resourceId: id,
-          operation: 'update',
-          requestMethod: request.method,
-          requestHeaders: request.headers,
-          mutationPayload: input && typeof input === 'object' ? (input as Record<string, unknown>) : null,
-        }, { userFeatures: updateUserFeatures ?? [] })
+        const guardResult = await runMutationGuards(
+          updateAllGuards,
+          {
+            tenantId: ctx.auth.tenantId,
+            organizationId: scopeOrganizationId,
+            userId: ctx.auth.sub,
+            resourceKind,
+            resourceId: id,
+            operation: 'update',
+            requestMethod: request.method,
+            requestHeaders: request.headers,
+            mutationPayload: input && typeof input === 'object' ? (input as Record<string, unknown>) : null,
+          },
+          { userFeatures: updateUserFeatures ?? [] },
+        )
         if (!guardResult.ok) {
-          return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, { status: guardResult.errorStatus ?? 422 })
+          return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, {
+            status: guardResult.errorStatus ?? 422,
+          })
         }
         if (guardResult.modifiedPayload && typeof input === 'object' && input) {
-          input = updateConfig.schema.parse({ ...input as Record<string, unknown>, ...guardResult.modifiedPayload })
+          input = updateConfig.schema.parse({ ...(input as Record<string, unknown>), ...guardResult.modifiedPayload })
         }
         updateGuardAfterCallbacks = guardResult.afterSuccessCallbacks
       }
@@ -2221,17 +2455,17 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const targetOrgId = ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null
       if (ormCfg.orgField && !targetOrgId) return json({ error: 'Organization context is required' }, { status: 400 })
 
-      const de = (ctx.container.resolve('dataEngine') as DataEngine)
+      const de = ctx.container.resolve('dataEngine') as DataEngine
       const where: any = buildScopedWhere(
         { [ormCfg.idField!]: id },
         {
           organizationId: ormCfg.orgField ? targetOrgId : undefined,
-          organizationIds: ormCfg.orgField ? ctx.organizationIds ?? undefined : undefined,
+          organizationIds: ormCfg.orgField ? (ctx.organizationIds ?? undefined) : undefined,
           tenantId: ormCfg.tenantField ? ctx.auth.tenantId : undefined,
           orgField: ormCfg.orgField,
           tenantField: ormCfg.tenantField,
           softDeleteField: ormCfg.softDeleteField,
-        }
+        },
       )
       const entity = await de.updateOrmEntity({
         entity: ormCfg.entity,
@@ -2245,9 +2479,11 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const cfc = updateConfig.customFields as Exclude<CustomFieldsConfig, false>
         const values = cfc.map
           ? cfc.map(body)
-          : (cfc.pickPrefixed ? extractCustomFieldValuesFromPayload(body as Record<string, unknown>) : {})
+          : cfc.pickPrefixed
+            ? extractCustomFieldValuesFromPayload(body as Record<string, unknown>)
+            : {}
         if (values && Object.keys(values).length > 0) {
-          const de = (ctx.container.resolve('dataEngine') as DataEngine)
+          const de = ctx.container.resolve('dataEngine') as DataEngine
           await de.setCustomFields({
             entityId: cfc.entityId as any,
             recordId: String((entity as any)[ormCfg.idField!]),
@@ -2263,9 +2499,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       // Guard afterSuccess callbacks (multi)
       if (updateGuardAfterCallbacks.length && ctx.auth.tenantId) {
         await runGuardAfterSuccessCallbacks(updateGuardAfterCallbacks, {
-          tenantId: ctx.auth.tenantId, organizationId: scopeOrganizationId, userId: ctx.auth.sub,
-          resourceKind, resourceId: id, operation: 'update',
-          requestMethod: request.method, requestHeaders: request.headers,
+          tenantId: ctx.auth.tenantId,
+          organizationId: scopeOrganizationId,
+          userId: ctx.auth.sub,
+          resourceKind,
+          resourceId: id,
+          operation: 'update',
+          requestMethod: request.method,
+          requestHeaders: request.headers,
         })
       }
 
@@ -2275,8 +2516,23 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         if (syncAfterSubs.length) {
           const em = ctx.container.resolve('em') as EntityManager
           const syncPayload = buildSyncPayload(
-            { eventId: updateLifecycle.afterEventId, entity: updateLifecycle.entity!, operation: 'update', timing: 'after', resourceId: id, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-            { payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined, previousData: updatePreviousData, entityData: snapshotEntity(entity) },
+            {
+              eventId: updateLifecycle.afterEventId,
+              entity: updateLifecycle.entity!,
+              operation: 'update',
+              timing: 'after',
+              resourceId: id,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            },
+            {
+              payload: input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined,
+              previousData: updatePreviousData,
+              entityData: snapshotEntity(entity),
+            },
           )
           await runSyncAfterEvent(syncAfterSubs, syncPayload, ctx.container)
         }
@@ -2291,7 +2547,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         indexer: opts.indexer as CrudIndexerConfig | undefined,
       })
       await de.flushOrmEntityChanges()
-      await invalidateCrudCache(ctx.container, resourceKind, identifiers, ctx.auth.tenantId ?? null, 'updated', resourceTargets)
+      await invalidateCrudCache(
+        ctx.container,
+        resourceKind,
+        identifiers,
+        ctx.auth.tenantId ?? null,
+        'updated',
+        resourceTargets,
+      )
       const payload = updateConfig.response ? updateConfig.response(entity) : { success: true }
       if (interceptorRequestPayload && payload && typeof payload === 'object' && !Array.isArray(payload)) {
         const afterInterceptors = await applyInterceptorsAfter({
@@ -2304,7 +2567,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           body: payload as Record<string, unknown>,
         })
         if (afterInterceptors && !afterInterceptors.ok) {
-          return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+          return json(afterInterceptors.body, {
+            status: afterInterceptors.statusCode,
+            headers: afterInterceptors.headers,
+          })
         }
         if (afterInterceptors?.ok) {
           return json(afterInterceptors.body, { status: 200, headers: afterInterceptors.headers })
@@ -2343,7 +2609,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const raw = { body, query: Object.fromEntries(url.searchParams.entries()) }
         const parsed = action.schema ? action.schema.parse(raw) : raw
         const interceptorInput =
-          parsed && typeof parsed === 'object' && (parsed as Record<string, unknown>).body && typeof (parsed as Record<string, unknown>).body === 'object'
+          parsed &&
+          typeof parsed === 'object' &&
+          (parsed as Record<string, unknown>).body &&
+          typeof (parsed as Record<string, unknown>).body === 'object'
             ? ((parsed as Record<string, unknown>).body as Record<string, unknown>)
             : body
         const beforeInterceptors = await applyInterceptorsBefore({
@@ -2362,12 +2631,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         const reparsed = action.schema ? action.schema.parse(reparsedRaw) : reparsedRaw
         const input = action.mapInput ? await action.mapInput({ parsed: reparsed, raw: reparsedRaw, ctx }) : reparsed
-        const userMetadata = action.metadata ? await action.metadata({ input, parsed: reparsed, raw: reparsedRaw, ctx }) : null
-        const commandBus = (ctx.container.resolve('commandBus') as CommandBus)
+        const userMetadata = action.metadata
+          ? await action.metadata({ input, parsed: reparsed, raw: reparsedRaw, ctx })
+          : null
+        const commandBus = ctx.container.resolve('commandBus') as CommandBus
         const candidateId = normalizeIdentifierValue(
-          (input as Record<string, unknown> | null | undefined)?.id
-            ?? (raw.query as Record<string, unknown> | null | undefined)?.id
-            ?? (raw.body as Record<string, unknown> | null | undefined)?.id
+          (input as Record<string, unknown> | null | undefined)?.id ??
+            (raw.query as Record<string, unknown> | null | undefined)?.id ??
+            (raw.body as Record<string, unknown> | null | undefined)?.id,
         )
 
         // Sync before-event (*.deleting) — command path
@@ -2376,12 +2647,23 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           const syncSubs = collectSyncSubscribers(getAllSyncSubscribers(), deleteLifecycleCmd.beforeEventId)
           if (syncSubs.length) {
             const em = ctx.container.resolve('em') as EntityManager
-            const syncPayload = buildSyncPayload(
-              { eventId: deleteLifecycleCmd.beforeEventId, entity: deleteLifecycleCmd.entity!, operation: 'delete', timing: 'before', resourceId: candidateId ?? null, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-            )
+            const syncPayload = buildSyncPayload({
+              eventId: deleteLifecycleCmd.beforeEventId,
+              entity: deleteLifecycleCmd.entity!,
+              operation: 'delete',
+              timing: 'before',
+              resourceId: candidateId ?? null,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            })
             const syncResult = await runSyncBeforeEvent(syncSubs, syncPayload, ctx.container)
             if (!syncResult.ok) {
-              return json(syncResult.errorBody ?? { error: 'Operation blocked' }, { status: syncResult.errorStatus ?? 422 })
+              return json(syncResult.errorBody ?? { error: 'Operation blocked' }, {
+                status: syncResult.errorStatus ?? 422,
+              })
             }
           }
         }
@@ -2390,18 +2672,24 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const { allGuards: deleteAllGuards } = collectAndRunGuards(ctx.container)
         let cmdDeleteGuardAfterCallbacks: Array<{ guard: MutationGuard; metadata: Record<string, unknown> | null }> = []
         if (deleteAllGuards.length && ctx.auth.tenantId && candidateId) {
-          const guardResult = await runMutationGuards(deleteAllGuards, {
-            tenantId: ctx.auth.tenantId,
-            organizationId: scopeOrganizationId,
-            userId: ctx.auth.sub,
-            resourceKind,
-            resourceId: candidateId,
-            operation: 'delete',
-            requestMethod: request.method,
-            requestHeaders: request.headers,
-          }, { userFeatures: deleteUserFeatures ?? [] })
+          const guardResult = await runMutationGuards(
+            deleteAllGuards,
+            {
+              tenantId: ctx.auth.tenantId,
+              organizationId: scopeOrganizationId,
+              userId: ctx.auth.sub,
+              resourceKind,
+              resourceId: candidateId,
+              operation: 'delete',
+              requestMethod: request.method,
+              requestHeaders: request.headers,
+            },
+            { userFeatures: deleteUserFeatures ?? [] },
+          )
           if (!guardResult.ok) {
-            return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, { status: guardResult.errorStatus ?? 422 })
+            return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, {
+              status: guardResult.errorStatus ?? 422,
+            })
           }
           cmdDeleteGuardAfterCallbacks = guardResult.afterSuccessCallbacks
         }
@@ -2413,10 +2701,19 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         }
         if (candidateId) baseMetadata.resourceId = candidateId
         const metadataToSend = mergeCommandMetadata(baseMetadata, userMetadata)
-        const { result, logEntry } = await commandBus.execute(action.commandId, { input, ctx, metadata: metadataToSend })
+        const { result, logEntry } = await commandBus.execute(action.commandId, {
+          input,
+          ctx,
+          metadata: metadataToSend,
+        })
         const payload = action.response ? action.response({ result, logEntry, ctx }) : result
         let resolvedPayload = await Promise.resolve(payload)
-        if (interceptorRequestPayload && resolvedPayload && typeof resolvedPayload === 'object' && !Array.isArray(resolvedPayload)) {
+        if (
+          interceptorRequestPayload &&
+          resolvedPayload &&
+          typeof resolvedPayload === 'object' &&
+          !Array.isArray(resolvedPayload)
+        ) {
           const afterInterceptors = await applyInterceptorsAfter({
             ctx,
             request,
@@ -2427,7 +2724,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
             body: resolvedPayload as Record<string, unknown>,
           })
           if (afterInterceptors && !afterInterceptors.ok) {
-            return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+            return json(afterInterceptors.body, {
+              status: afterInterceptors.statusCode,
+              headers: afterInterceptors.headers,
+            })
           }
           if (afterInterceptors?.ok) resolvedPayload = afterInterceptors.body
         }
@@ -2452,9 +2752,18 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           const syncAfterSubs = collectSyncSubscribers(getAllSyncSubscribers(), deleteLifecycleCmd.afterEventId)
           if (syncAfterSubs.length) {
             const em = ctx.container.resolve('em') as EntityManager
-            const syncPayload = buildSyncPayload(
-              { eventId: deleteLifecycleCmd.afterEventId, entity: deleteLifecycleCmd.entity!, operation: 'delete', timing: 'after', resourceId: candidateId ?? null, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-            )
+            const syncPayload = buildSyncPayload({
+              eventId: deleteLifecycleCmd.afterEventId,
+              entity: deleteLifecycleCmd.entity!,
+              operation: 'delete',
+              timing: 'after',
+              resourceId: candidateId ?? null,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            })
             await runSyncAfterEvent(syncAfterSubs, syncPayload, ctx.container)
           }
         }
@@ -2466,9 +2775,7 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       }
 
       const idFrom = opts.del?.idFrom || 'query'
-      const id = idFrom === 'query'
-        ? url.searchParams.get('id')
-        : (await request.json().catch(() => ({}))).id
+      const id = idFrom === 'query' ? url.searchParams.get('id') : (await request.json().catch(() => ({}))).id
       if (!isUuid(id)) return json({ error: 'ID is required' }, { status: 400 })
       const beforeInterceptors = await applyInterceptorsBefore({
         ctx,
@@ -2487,12 +2794,23 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         const syncSubs = collectSyncSubscribers(getAllSyncSubscribers(), deleteLifecycle.beforeEventId)
         if (syncSubs.length) {
           const em = ctx.container.resolve('em') as EntityManager
-          const syncPayload = buildSyncPayload(
-            { eventId: deleteLifecycle.beforeEventId, entity: deleteLifecycle.entity!, operation: 'delete', timing: 'before', resourceId: id, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
-          )
+          const syncPayload = buildSyncPayload({
+            eventId: deleteLifecycle.beforeEventId,
+            entity: deleteLifecycle.entity!,
+            operation: 'delete',
+            timing: 'before',
+            resourceId: id,
+            userId: ctx.auth.sub,
+            organizationId: scopeOrganizationId,
+            tenantId: ctx.auth.tenantId!,
+            em,
+            request,
+          })
           const syncResult = await runSyncBeforeEvent(syncSubs, syncPayload, ctx.container)
           if (!syncResult.ok) {
-            return json(syncResult.errorBody ?? { error: 'Operation blocked' }, { status: syncResult.errorStatus ?? 422 })
+            return json(syncResult.errorBody ?? { error: 'Operation blocked' }, {
+              status: syncResult.errorStatus ?? 422,
+            })
           }
         }
       }
@@ -2504,18 +2822,24 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const { allGuards: deleteAllGuards } = collectAndRunGuards(ctx.container)
       let deleteGuardAfterCallbacks: Array<{ guard: MutationGuard; metadata: Record<string, unknown> | null }> = []
       if (deleteAllGuards.length && ctx.auth.tenantId) {
-        const guardResult = await runMutationGuards(deleteAllGuards, {
-          tenantId: ctx.auth.tenantId,
-          organizationId: scopeOrganizationId,
-          userId: ctx.auth.sub,
-          resourceKind,
-          resourceId: id,
-          operation: 'delete',
-          requestMethod: request.method,
-          requestHeaders: request.headers,
-        }, { userFeatures: deleteUserFeatures ?? [] })
+        const guardResult = await runMutationGuards(
+          deleteAllGuards,
+          {
+            tenantId: ctx.auth.tenantId,
+            organizationId: scopeOrganizationId,
+            userId: ctx.auth.sub,
+            resourceKind,
+            resourceId: id,
+            operation: 'delete',
+            requestMethod: request.method,
+            requestHeaders: request.headers,
+          },
+          { userFeatures: deleteUserFeatures ?? [] },
+        )
         if (!guardResult.ok) {
-          return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, { status: guardResult.errorStatus ?? 422 })
+          return json(guardResult.errorBody ?? { error: 'Operation blocked by guard' }, {
+            status: guardResult.errorStatus ?? 422,
+          })
         }
         deleteGuardAfterCallbacks = guardResult.afterSuccessCallbacks
       }
@@ -2523,17 +2847,17 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       const targetOrgId = ctx.selectedOrganizationId ?? ctx.auth.orgId ?? null
       if (ormCfg.orgField && !targetOrgId) return json({ error: 'Organization context is required' }, { status: 400 })
 
-      const de = (ctx.container.resolve('dataEngine') as DataEngine)
+      const de = ctx.container.resolve('dataEngine') as DataEngine
       const where: any = buildScopedWhere(
         { [ormCfg.idField!]: id },
         {
           organizationId: ormCfg.orgField ? targetOrgId : undefined,
-          organizationIds: ormCfg.orgField ? ctx.organizationIds ?? undefined : undefined,
+          organizationIds: ormCfg.orgField ? (ctx.organizationIds ?? undefined) : undefined,
           tenantId: ormCfg.tenantField ? ctx.auth.tenantId : undefined,
           orgField: ormCfg.orgField,
           tenantField: ormCfg.tenantField,
           softDeleteField: ormCfg.softDeleteField,
-        }
+        },
       )
       const entity = await de.deleteOrmEntity({
         entity: ormCfg.entity,
@@ -2547,9 +2871,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
       // Guard afterSuccess callbacks (multi)
       if (deleteGuardAfterCallbacks.length && ctx.auth.tenantId) {
         await runGuardAfterSuccessCallbacks(deleteGuardAfterCallbacks, {
-          tenantId: ctx.auth.tenantId, organizationId: scopeOrganizationId, userId: ctx.auth.sub,
-          resourceKind, resourceId: id, operation: 'delete',
-          requestMethod: request.method, requestHeaders: request.headers,
+          tenantId: ctx.auth.tenantId,
+          organizationId: scopeOrganizationId,
+          userId: ctx.auth.sub,
+          resourceKind,
+          resourceId: id,
+          operation: 'delete',
+          requestMethod: request.method,
+          requestHeaders: request.headers,
         })
       }
 
@@ -2559,7 +2888,18 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
         if (syncAfterSubs.length) {
           const em = ctx.container.resolve('em') as EntityManager
           const syncPayload = buildSyncPayload(
-            { eventId: deleteLifecycle.afterEventId, entity: deleteLifecycle.entity!, operation: 'delete', timing: 'after', resourceId: id, userId: ctx.auth.sub, organizationId: scopeOrganizationId, tenantId: ctx.auth.tenantId!, em, request },
+            {
+              eventId: deleteLifecycle.afterEventId,
+              entity: deleteLifecycle.entity!,
+              operation: 'delete',
+              timing: 'after',
+              resourceId: id,
+              userId: ctx.auth.sub,
+              organizationId: scopeOrganizationId,
+              tenantId: ctx.auth.tenantId!,
+              em,
+              request,
+            },
             { entityData: snapshotEntity(entity) },
           )
           await runSyncAfterEvent(syncAfterSubs, syncPayload, ctx.container)
@@ -2576,7 +2916,14 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           indexer: opts.indexer as CrudIndexerConfig | undefined,
         })
         await de.flushOrmEntityChanges()
-        await invalidateCrudCache(ctx.container, resourceKind, identifiers, ctx.auth.tenantId ?? null, 'deleted', resourceTargets)
+        await invalidateCrudCache(
+          ctx.container,
+          resourceKind,
+          identifiers,
+          ctx.auth.tenantId ?? null,
+          'deleted',
+          resourceTargets,
+        )
       }
       const payload = opts.del?.response ? opts.del.response(id) : { success: true }
       if (interceptorRequestPayload && payload && typeof payload === 'object' && !Array.isArray(payload)) {
@@ -2590,7 +2937,10 @@ export function makeCrudRoute<TCreate = any, TUpdate = any, TList = any>(opts: C
           body: payload as Record<string, unknown>,
         })
         if (afterInterceptors && !afterInterceptors.ok) {
-          return json(afterInterceptors.body, { status: afterInterceptors.statusCode, headers: afterInterceptors.headers })
+          return json(afterInterceptors.body, {
+            status: afterInterceptors.statusCode,
+            headers: afterInterceptors.headers,
+          })
         }
         if (afterInterceptors?.ok) {
           return json(afterInterceptors.body, { status: 200, headers: afterInterceptors.headers })

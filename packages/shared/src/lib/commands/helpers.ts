@@ -16,7 +16,7 @@ export type ParsedPayload<TSchema extends z.ZodTypeAny> = {
 
 export function parseWithCustomFields<TSchema extends z.ZodTypeAny>(
   schema: TSchema,
-  raw: unknown
+  raw: unknown,
 ): ParsedPayload<TSchema> {
   const { base, custom } = splitCustomFieldPayload(raw)
   const parsed = schema.parse(base)
@@ -90,7 +90,7 @@ export async function flushCrudSideEffects(dataEngine: DataEngine): Promise<void
 export function buildChanges(
   before: Record<string, unknown> | null | undefined,
   after: Record<string, unknown>,
-  keys: readonly string[]
+  keys: readonly string[],
 ): Record<string, { from: unknown; to: unknown }> {
   if (!before) return {}
   const diff: Record<string, { from: unknown; to: unknown }> = {}
@@ -143,7 +143,9 @@ export type LogBuilderArgs<TInput, TResult> = {
   snapshots: { before?: unknown; after?: unknown }
 }
 
-export type LogBuilder<TInput, TResult> = (args: LogBuilderArgs<TInput, TResult>) => CommandLogMetadata | null | Promise<CommandLogMetadata | null>
+export type LogBuilder<TInput, TResult> = (
+  args: LogBuilderArgs<TInput, TResult>,
+) => CommandLogMetadata | null | Promise<CommandLogMetadata | null>
 
 export function snapshotsEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true
@@ -158,19 +160,17 @@ export function snapshotsEqual(a: unknown, b: unknown): boolean {
   const keysA = Object.keys(a as Record<string, unknown>)
   const keysB = Object.keys(b as Record<string, unknown>)
   if (keysA.length !== keysB.length) return false
-  return keysA.every((key) =>
-    snapshotsEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
-  )
+  return keysA.every(key => snapshotsEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]))
 }
 
 const AUTHOR_UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/
 
 export function normalizeAuthorUserId(
   explicitAuthorUserId: string | undefined | null,
-  auth: { isApiKey?: boolean; sub?: string | null } | undefined | null
+  auth: { isApiKey?: boolean; sub?: string | null } | undefined | null,
 ): string | null {
   if (explicitAuthorUserId) return explicitAuthorUserId
-  const authSub = auth?.isApiKey ? null : auth?.sub ?? null
+  const authSub = auth?.isApiKey ? null : (auth?.sub ?? null)
   if (!authSub) return null
   return AUTHOR_UUID_REGEX.test(authSub) ? authSub : null
 }

@@ -10,6 +10,9 @@ export type PreparedExport = {
   rows: Array<Record<string, unknown>>
 }
 
+import { getTrimmedString } from '../string/validation'
+}
+
 export type SerializedExport = {
   body: string
   contentType: string
@@ -159,7 +162,7 @@ export function normalizeExportFormat(raw: unknown): CrudExportFormat | null {
 }
 
 export function defaultExportFilename(base: string | undefined | null, format: CrudExportFormat): string {
-  const safeBase = (base && base.trim().length > 0 ? base.trim() : 'export')
+  const safeBase = (getTrimmedString(base) ?? 'export')
     .replace(/[^a-z0-9_\-]/gi, '_')
   const suffix = format === 'markdown' ? 'md' : format
   return `${safeBase}.${suffix}`
