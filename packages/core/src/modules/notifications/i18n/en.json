@@ -46,5 +46,18 @@
   "notifications.toast.actionError": "Failed to execute action",
   "notifications.toast.actionSuccess": "Action completed successfully",
   "notifications.toast.dismissed": "Notification dismissed",
-  "notifications.toast.new": "New notification"
+  "notifications.toast.new": "New notification",
+  "notifications.reminder.task_due.title": "Task Due Soon",
+  "notifications.reminder.task_due.body": "Your task '{taskName}' is due on {dueDate}. Please review and complete it.",
+  "notifications.reminder.follow_up.title": "Follow-up Required",
+  "notifications.reminder.follow_up.body": "It's time to follow up on '{subject}'. Check the latest status and take necessary actions.",
+  "notifications.reminder.deadline_approaching.title": "Deadline Approaching",
+  "notifications.reminder.deadline_approaching.body": "The deadline for '{subject}' is approaching on {deadline}. Immediate attention required.",
+  "notifications.reminder.deadline_extended.title": "Deadline Extended",
+  "notifications.reminder.deadline_extended.body": "The deadline for '{subject}' has been extended by {extendedHours} hours.",
+  "notifications.actions.snooze": "Snooze",
+  "notifications.actions.mark_complete": "Mark Complete",
+  "notifications.actions.extend_deadline": "Extend Deadline",
+  "notifications.confirm.snooze": "Snooze this reminder for 24 hours?",
+  "notifications.confirm.extend_deadline": "Extend the deadline by 48 hours?"
 }
