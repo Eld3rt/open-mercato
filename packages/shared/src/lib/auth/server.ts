@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers.js'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import { verifyJwt } from './jwt'
-import { isNonEmptyString } from '../string/validation'
+import { isNonEmptyString, filterNonEmptyStrings } from '../string/validation'
+import { extractValidStringFieldValues } from '../array/extraction'
 
 const TENANT_COOKIE_NAME = 'om_selected_tenant'
 const ORGANIZATION_COOKIE_NAME = 'om_selected_org'
@@ -76,13 +77,13 @@ function isSuperAdminAuth(auth: AuthContext | null | undefined): boolean {
   if (!auth) return false
   if ((auth as Record<string, unknown>).isSuperAdmin === true) return true
   const roles = Array.isArray(auth?.roles) ? auth.roles : []
-  return roles.some((role) => typeof role === 'string' && role.trim().toLowerCase() === SUPERADMIN_ROLE)
+  return roles.some(role => typeof role === 'string' && role.trim().toLowerCase() === SUPERADMIN_ROLE)
 }
 
 function applySuperAdminScope(
   auth: AuthContext,
   tenantCookie: string | undefined,
-  orgCookie: string | undefined
+  orgCookie: string | undefined,
 ): AuthContext {
   if (!auth || !isSuperAdminAuth(auth)) return auth
 
@@ -106,7 +107,7 @@ function applySuperAdminScope(
   }
   next.isSuperAdmin = true
   const existingRoles = Array.isArray(next.roles) ? next.roles : []
-  if (!existingRoles.some((role) => typeof role === 'string' && role.trim().toLowerCase() === SUPERADMIN_ROLE)) {
+  if (!existingRoles.some(role => typeof role === 'string' && role.trim().toLowerCase() === SUPERADMIN_ROLE)) {
     next.roles = [...existingRoles, 'superadmin']
   }
   return next
@@ -117,7 +118,7 @@ async function resolveApiKeyAuth(secret: string): Promise<AuthContext> {
   try {
     const { createRequestContainer } = await import('@open-mercato/shared/lib/di/container')
     const container = await createRequestContainer()
-    const em = (container.resolve('em') as EntityManager)
+    const em = container.resolve('em') as EntityManager
     const { findApiKeyBySecret } = await import('@open-mercato/core/modules/api_keys/services/apiKeyService')
     const { Role, User } = await import('@open-mercato/core/modules/auth/data/entities')
     const { Organization, Tenant } = await import('@open-mercato/core/modules/directory/data/entities')
@@ -125,13 +126,9 @@ async function resolveApiKeyAuth(secret: string): Promise<AuthContext> {
     const record = await findApiKeyBySecret(em, secret)
     if (!record) return null
 
-    const roleIds = Array.isArray(record.rolesJson)
-      ? record.rolesJson.filter((value): value is string => typeof value === 'string' && value.length > 0)
-      : []
-    const roles = roleIds.length
-      ? await em.find(Role, { id: { $in: roleIds }, deletedAt: null })
-      : []
-    const roleNames = roles.map((role) => role.name).filter((name): name is string => typeof name === 'string' && name.length > 0)
+    const roleIds = Array.isArray(record.rolesJson) ? filterNonEmptyStrings(record.rolesJson) : []
+    const roles = roleIds.length ? await em.find(Role, { id: { $in: roleIds }, deletedAt: null }) : []
+    const roleNames = extractValidStringFieldValues(roles, 'name')
 
     try {
       record.lastUsedAt = new Date()
@@ -154,7 +151,11 @@ async function resolveApiKeyAuth(secret: string): Promise<AuthContext> {
         if (!tenant) return null
       }
       if (record.organizationId) {
-        const organization = await em.findOne(Organization, { id: record.organizationId, deletedAt: null, isActive: true })
+        const organization = await em.findOne(Organization, {
+          id: record.organizationId,
+          deletedAt: null,
+          isActive: true,
+        })
         if (!organization) return null
         if (record.tenantId && String(organization.tenant.id) !== record.tenantId) return null
       }

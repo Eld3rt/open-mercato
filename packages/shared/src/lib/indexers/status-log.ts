@@ -1,5 +1,6 @@
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { Knex } from 'knex'
+import { extractNonFalsyFieldValues } from '../array/extraction'
 import type { IndexerErrorSource } from './error-log'
 
 export type IndexerLogLevel = 'info' | 'warn'
@@ -68,17 +69,12 @@ async function pruneExcessLogs(knex: Knex, source: IndexerErrorSource): Promise<
     .limit(MAX_DELETE_BATCH)
 
   if (!rows.length) return
-  const ids = rows.map((row: any) => row.id).filter(Boolean)
+  const ids = extractNonFalsyFieldValues(rows, 'id')
   if (!ids.length) return
-  await knex('indexer_status_logs')
-    .whereIn('id', ids)
-    .del()
+  await knex('indexer_status_logs').whereIn('id', ids).del()
 }
 
-export async function recordIndexerLog(
-  deps: RecordIndexerLogDeps,
-  input: RecordIndexerLogInput,
-): Promise<void> {
+export async function recordIndexerLog(deps: RecordIndexerLogDeps, input: RecordIndexerLogInput): Promise<void> {
   const knex = pickKnex(deps)
   if (!knex) {
     console.warn('[indexers] Unable to record indexer log (missing knex connection)', {

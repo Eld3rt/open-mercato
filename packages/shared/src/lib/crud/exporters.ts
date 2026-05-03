@@ -11,6 +11,7 @@ export type PreparedExport = {
 }
 
 import { getTrimmedString } from '../string/validation'
+import { mapAndFilter } from '../array/extraction'
 }
 
 export type SerializedExport = {
@@ -29,7 +30,7 @@ function normalizeValue(value: unknown): string {
   if (value instanceof Date) return value.toISOString()
   if (typeof value === 'bigint') return value.toString()
   if (typeof value === 'object') {
-    if (Array.isArray(value)) return value.map((v) => normalizeValue(v)).filter(Boolean).join(', ')
+    if (Array.isArray(value)) return mapAndFilter(value, (v) => normalizeValue(v) || null).join(', ')
     return JSON.stringify(value)
   }
   return String(value)
