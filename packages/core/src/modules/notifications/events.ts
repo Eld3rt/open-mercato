@@ -16,6 +16,13 @@ const events = [
     category: 'system',
     clientBroadcast: true,
   },
+  {
+    id: NOTIFICATION_SSE_EVENTS.REMINDER_DUE,
+    label: 'Reminder Due',
+    entity: 'notification',
+    category: 'reminder',
+    clientBroadcast: true,
+  },
 ] as const
 
 export const eventsConfig = createModuleEvents({

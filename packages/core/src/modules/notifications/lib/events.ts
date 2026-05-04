@@ -5,11 +5,14 @@ export const NOTIFICATION_EVENTS = {
   DISMISSED: 'notifications.dismissed',
   RESTORED: 'notifications.restored',
   EXPIRED: 'notifications.expired',
+  SNOOZED: 'notifications.snoozed',
+  COMPLETED: 'notifications.completed',
 } as const
 
 export const NOTIFICATION_SSE_EVENTS = {
   CREATED: 'notifications.notification.created',
   BATCH_CREATED: 'notifications.notification.batch_created',
+  REMINDER_DUE: 'notifications.reminder.due',
 } as const
 
 export type NotificationCreatedPayload = {
@@ -50,4 +53,26 @@ export type NotificationRestoredPayload = {
 export type NotificationExpiredPayload = {
   notificationIds: string[]
   tenantId: string
+}
+
+export type NotificationSnoozedPayload = {
+  notificationId: string
+  userId: string
+  snoozeUntil: string
+  tenantId: string
+}
+
+export type NotificationCompletedPayload = {
+  notificationId: string
+  userId: string
+  tenantId: string
+}
+
+export type NotificationReminderDuePayload = {
+  notificationId: string
+  reminderType: 'task_due' | 'follow_up' | 'deadline_approaching'
+  sourceEntityType?: string
+  sourceEntityId?: string
+  tenantId: string
+  organizationId?: string | null
 }

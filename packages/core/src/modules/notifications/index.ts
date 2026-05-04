@@ -10,3 +10,4 @@ export const metadata: ModuleInfo = {
 }
 
 export { features } from './acl'
+export { notificationTypes } from './notifications'
