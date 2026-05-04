@@ -1,6 +1,7 @@
 import { executeActionSchema } from '../../../data/validators'
 import { actionResultResponseSchema, errorResponseSchema } from '../../openapi'
 import { resolveNotificationContext } from '../../../lib/routeHelpers'
+import { renderNotificationHref } from '../../../lib/safeHref'
 import { resolveTranslations } from '@open-mercato/shared/lib/i18n/server'
 
 export const metadata = {
@@ -18,7 +19,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const { notification, result } = await service.executeAction(id, input, scope)
 
     const action = notification.actionData?.actions?.find((a) => a.id === input.actionId)
-    const href = action?.href?.replace('{sourceEntityId}', notification.sourceEntityId ?? '')
+    const href = renderNotificationHref(action?.href, {
+      sourceModule: notification.sourceModule,
+      sourceEntityType: notification.sourceEntityType,
+      sourceEntityId: notification.sourceEntityId,
+    })
 
     return Response.json({
       ok: true,

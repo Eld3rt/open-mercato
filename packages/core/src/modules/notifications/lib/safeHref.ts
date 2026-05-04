@@ -16,6 +16,37 @@ export function assertSafeNotificationHref(href: string | undefined | null): str
   return href
 }
 
+export type NotificationHrefContext = {
+  sourceEntityId?: string | null
+  sourceEntityType?: string | null
+  sourceModule?: string | null
+}
+
+export function renderNotificationHref(
+  href: string | undefined,
+  context: NotificationHrefContext
+): string | undefined {
+  if (!href) return undefined
+
+  const placeholderMap: Array<[keyof NotificationHrefContext, string]> = [
+    ['sourceEntityId', context.sourceEntityId ?? ''],
+    ['sourceEntityType', context.sourceEntityType ?? ''],
+    ['sourceModule', context.sourceModule ?? ''],
+  ]
+
+  let renderedHref = href
+
+  for (const [key, value] of placeholderMap) {
+    const placeholder = `{${key}}`
+    if (renderedHref.includes(placeholder) && !value) {
+      return undefined
+    }
+    renderedHref = renderedHref.split(placeholder).join(value)
+  }
+
+  return renderedHref
+}
+
 export function sanitizeNotificationActions(
   actions: NotificationAction[] | undefined
 ): NotificationAction[] | undefined {
