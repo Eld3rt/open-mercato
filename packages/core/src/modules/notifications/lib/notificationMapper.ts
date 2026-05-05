@@ -1,4 +1,4 @@
-import type { NotificationDto } from '@open-mercato/shared/modules/notifications/types'
+import type { NotificationDto, NotificationGroupDto } from '@open-mercato/shared/modules/notifications/types'
 import { Notification } from '../data/entities'
 
 export function toNotificationDto(notification: Notification): NotificationDto {
@@ -40,5 +40,35 @@ export function toNotificationDto(notification: Notification): NotificationDto {
     createdAt: createdAt.toISOString(),
     readAt: notification.readAt?.toISOString() ?? null,
     actionTaken: notification.actionTaken,
+  }
+}
+
+export function toNotificationGroupDto(group: any): NotificationGroupDto {
+  const createdAt = group.latest_created_at ? new Date(group.latest_created_at) : new Date()
+
+  return {
+    groupKey: group.group_key,
+    type: group.type,
+    title: group.title,
+    body: group.body,
+    titleKey: group.title_key,
+    bodyKey: group.body_key,
+    titleVariables: null, // Groups don't have variables for now
+    bodyVariables: null,
+    icon: group.icon,
+    severity: group.severity || 'info',
+    status: 'read', // Group status is derived from individual notifications
+    actions: [], // Groups don't have actions for now
+    primaryActionId: undefined,
+    sourceModule: group.source_module,
+    sourceEntityType: group.source_entity_type,
+    sourceEntityId: group.source_entity_id,
+    linkHref: group.link_href,
+    createdAt: createdAt.toISOString(),
+    readAt: null,
+    actionTaken: undefined,
+    count: parseInt(group.count, 10),
+    latestId: group.latest_id,
+    unreadCount: parseInt(group.unread_count, 10),
   }
 }

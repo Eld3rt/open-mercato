@@ -71,6 +71,18 @@ export const listNotificationsSchema = z.object({
   since: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+  groupBy: z.enum(['none', 'groupKey', 'type']).optional().default('none'),
+})
+
+export const listNotificationGroupsSchema = z.object({
+  status: z.union([notificationStatusSchema, z.array(notificationStatusSchema)]).optional(),
+  type: z.string().optional(),
+  severity: notificationSeveritySchema.optional(),
+  sourceEntityType: z.string().optional(),
+  sourceEntityId: z.string().uuid().optional(),
+  since: z.string().datetime().optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 })
 
 export const executeActionSchema = z.object({
@@ -113,3 +125,4 @@ export type CreateFeatureNotificationInput = z.infer<typeof createFeatureNotific
 export type ListNotificationsInput = z.infer<typeof listNotificationsSchema>
 export type ExecuteActionInput = z.infer<typeof executeActionSchema>
 export type NotificationDeliveryConfigInput = z.infer<typeof notificationDeliveryConfigSchema>
+export type ListNotificationGroupsInput = z.infer<typeof listNotificationGroupsSchema>

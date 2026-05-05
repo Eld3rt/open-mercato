@@ -1,6 +1,6 @@
 import type { EntityManager } from '@mikro-orm/core'
 import type { Knex } from 'knex'
-import { Notification, type NotificationStatus } from '../data/entities'
+import { Notification, type NotificationStatus, type NotificationSeverity } from '../data/entities'
 import type { CreateNotificationInput, CreateBatchNotificationInput, CreateRoleNotificationInput, CreateFeatureNotificationInput, ExecuteActionInput } from '../data/validators'
 import type { NotificationPollData } from '@open-mercato/shared/modules/notifications/types'
 import { NOTIFICATION_EVENTS, NOTIFICATION_SSE_EVENTS } from './events'
@@ -11,7 +11,7 @@ import {
   type NotificationContentInput,
   type NotificationTenantContext,
 } from './notificationFactory'
-import { toNotificationDto } from './notificationMapper'
+import { toNotificationDto, toNotificationGroupDto } from './notificationMapper'
 import { getRecipientUserIdsForFeature, getRecipientUserIdsForRole } from './notificationRecipients'
 import { assertSafeNotificationHref, sanitizeNotificationActions } from './safeHref'
 
@@ -166,6 +166,16 @@ export interface NotificationService {
     sourceEntityId: string,
     ctx: NotificationServiceContext
   ): Promise<number>
+  getGroups(ctx: NotificationServiceContext, filters?: {
+    status?: NotificationStatus | NotificationStatus[]
+    type?: string
+    severity?: NotificationSeverity
+    sourceEntityType?: string
+    sourceEntityId?: string
+    since?: string
+    page?: number
+    pageSize?: number
+  }): Promise<{ items: any[]; total: number; page: number; pageSize: number; totalPages: number }>
 }
 
 export interface NotificationServiceDeps {
@@ -520,6 +530,130 @@ export function createNotificationService(deps: NotificationServiceDeps): Notifi
         .delete()
 
       return result
+    },
+
+    async getGroups(ctx, filters = {}) {
+      const em = rootEm.fork()
+      const knex = getKnex(em)
+
+      const query = knex('notifications')
+        .select([
+          'group_key',
+          'type',
+          knex.raw('COUNT(*) as count'),
+          knex.raw('COUNT(CASE WHEN status = \'unread\' THEN 1 END) as unread_count'),
+          knex.raw('MAX(id) as latest_id'),
+          knex.raw('MAX(created_at) as latest_created_at'),
+          knex.raw('MAX(title) as title'),
+          knex.raw('MAX(title_key) as title_key'),
+          knex.raw('MAX(body) as body'),
+          knex.raw('MAX(body_key) as body_key'),
+          knex.raw('MAX(icon) as icon'),
+          knex.raw('MAX(severity) as severity'),
+          knex.raw('MAX(source_module) as source_module'),
+          knex.raw('MAX(source_entity_type) as source_entity_type'),
+          knex.raw('MAX(source_entity_id) as source_entity_id'),
+          knex.raw('MAX(link_href) as link_href'),
+        ])
+        .where({
+          recipient_user_id: ctx.userId,
+          tenant_id: ctx.tenantId,
+          group_key: knex.raw('IS NOT NULL'),
+        })
+        .whereNot('group_key', '')
+        .groupBy(['group_key', 'type'])
+        .orderBy('latest_created_at', 'desc')
+
+      if (filters.status) {
+        if (Array.isArray(filters.status)) {
+          query.whereIn('status', filters.status)
+        } else {
+          query.where('status', filters.status)
+        }
+      } else {
+        query.whereNot('status', 'dismissed')
+      }
+
+      if (filters.type) {
+        query.where('type', filters.type)
+      }
+
+      if (filters.severity) {
+        query.where('severity', filters.severity)
+      }
+
+      if (filters.sourceEntityType) {
+        query.where('source_entity_type', filters.sourceEntityType)
+      }
+
+      if (filters.sourceEntityId) {
+        query.where('source_entity_id', filters.sourceEntityId)
+      }
+
+      if (filters.since) {
+        query.where('created_at', '>', filters.since)
+      }
+
+      const page = filters.page ?? 1
+      const pageSize = filters.pageSize ?? 20
+      const offset = (page - 1) * pageSize
+
+      query.limit(pageSize).offset(offset)
+
+      const groups = await query
+
+      // Get total count
+      const countQuery = knex('notifications')
+        .countDistinct(knex.raw('group_key || type'), { as: 'total' })
+        .where({
+          recipient_user_id: ctx.userId,
+          tenant_id: ctx.tenantId,
+          group_key: knex.raw('IS NOT NULL'),
+        })
+        .whereNot('group_key', '')
+
+      if (filters.status) {
+        if (Array.isArray(filters.status)) {
+          countQuery.whereIn('status', filters.status)
+        } else {
+          countQuery.where('status', filters.status)
+        }
+      } else {
+        countQuery.whereNot('status', 'dismissed')
+      }
+
+      if (filters.type) {
+        countQuery.where('type', filters.type)
+      }
+
+      if (filters.severity) {
+        countQuery.where('severity', filters.severity)
+      }
+
+      if (filters.sourceEntityType) {
+        countQuery.where('source_entity_type', filters.sourceEntityType)
+      }
+
+      if (filters.sourceEntityId) {
+        countQuery.where('source_entity_id', filters.sourceEntityId)
+      }
+
+      if (filters.since) {
+        countQuery.where('created_at', '>', filters.since)
+      }
+
+      const countResult = await countQuery.first()
+      const total = parseInt(countResult?.total as string || '0', 10)
+
+      const items = groups.map(toNotificationGroupDto)
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      }
     },
   }
 }
