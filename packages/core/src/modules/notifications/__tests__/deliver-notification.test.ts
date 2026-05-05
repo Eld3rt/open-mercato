@@ -243,6 +243,63 @@ describe('deliver notification subscriber', () => {
     )
   })
 
+  it('resolves sourceModule and sourceEntityType placeholders in action hrefs', async () => {
+    const reminderNotification: Notification = {
+      ...notification,
+      sourceModule: 'sales',
+      sourceEntityType: 'order',
+      sourceEntityId: '11111111-1111-4111-8111-111111111111',
+      actionData: {
+        actions: [
+          {
+            id: 'view',
+            label: 'View Order',
+            href: '/backend/{sourceModule}/{sourceEntityType}s/{sourceEntityId}',
+          },
+        ],
+        primaryActionId: 'view',
+      },
+    } as Notification
+
+    resolveNotificationDeliveryConfig.mockResolvedValue(baseConfig)
+    resolveNotificationPanelUrl.mockReturnValue('https://app.example.com/backend/notifications')
+    getNotificationDeliveryStrategies.mockReturnValue([])
+    findOneWithDecryption.mockResolvedValue({ email: 'user@example.com', name: 'User' })
+
+    const em = {
+      findOne: jest.fn().mockResolvedValue(reminderNotification),
+    }
+
+    const { default: handle } = await import('../subscribers/deliver-notification')
+
+    await handle(
+      {
+        notificationId: reminderNotification.id,
+        recipientUserId: reminderNotification.recipientUserId,
+        tenantId: reminderNotification.tenantId,
+        organizationId: null,
+      },
+      {
+        resolve: (name: string) => {
+          if (name === 'em') return em
+          throw new Error(`Missing dependency: ${name}`)
+        },
+      }
+    )
+
+    expect(NotificationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actions: [
+          {
+            id: 'view',
+            label: 'View Order',
+            href: 'https://app.example.com/backend/sales/orders/11111111-1111-4111-8111-111111111111',
+          },
+        ],
+      })
+    )
+  })
+
   it('returns null when appUrl is missing', async () => {
     const configWithoutAppUrl: NotificationDeliveryConfig = {
       panelPath: '/backend/notifications',

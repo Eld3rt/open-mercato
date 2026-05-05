@@ -3,6 +3,7 @@ import { Notification } from '../data/entities'
 import { NOTIFICATION_EVENTS } from '../lib/events'
 import { DEFAULT_NOTIFICATION_DELIVERY_CONFIG, resolveNotificationDeliveryConfig, resolveNotificationPanelUrl } from '../lib/deliveryConfig'
 import { getNotificationDeliveryStrategies } from '../lib/deliveryStrategies'
+import { renderNotificationHref } from '../lib/safeHref'
 import { sendEmail } from '@open-mercato/shared/lib/email/send'
 import NotificationEmail from '../emails/NotificationEmail'
 import { loadDictionary } from '@open-mercato/shared/lib/i18n/server'
@@ -135,10 +136,11 @@ export default async function handle(payload: NotificationCreatedPayload, ctx: R
   const baseOrigin = panelUrl ? new URL(panelUrl).origin : null
   const actionLinks = (notification.actionData?.actions ?? [])
     .map((action) => {
-      let href = action.href
-      if (href && notification.sourceEntityId) {
-        href = href.replace('{sourceEntityId}', notification.sourceEntityId)
-      }
+      const href = renderNotificationHref(action.href, {
+        sourceModule: notification.sourceModule,
+        sourceEntityType: notification.sourceEntityType,
+        sourceEntityId: notification.sourceEntityId,
+      })
       const fullHref = (href && baseOrigin) ? `${baseOrigin}${href}` : panelLink
       if (!fullHref) return null
       return {
