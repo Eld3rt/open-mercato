@@ -125,14 +125,14 @@ describe('deliver notification subscriber', () => {
           if (name === 'em') return em
           throw new Error(`Missing dependency: ${name}`)
         },
-      }
+      },
     )
 
     expect(NotificationEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         title: notification.title,
         panelUrl: `https://app.example.com/backend/notifications?notificationId=${notification.id}`,
-      })
+      }),
     )
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -140,7 +140,7 @@ describe('deliver notification subscriber', () => {
         from: baseConfig.strategies.email.from,
         replyTo: baseConfig.strategies.email.replyTo,
         subject: `${baseConfig.strategies.email.subjectPrefix} ${notification.title}`,
-      })
+      }),
     )
   })
 
@@ -181,14 +181,14 @@ describe('deliver notification subscriber', () => {
           if (name === 'em') return em
           throw new Error(`Missing dependency: ${name}`)
         },
-      }
+      },
     )
 
     expect(customStrategy.deliver).toHaveBeenCalledWith(
       expect.objectContaining({
         config: { enabled: true, config: { url: 'https://hooks.example.com' } },
         panelLink: `https://app.example.com/backend/notifications?notificationId=${notification.id}`,
-      })
+      }),
     )
     expect(sendEmail).not.toHaveBeenCalled()
   })
@@ -197,9 +197,7 @@ describe('deliver notification subscriber', () => {
     const notificationWithActionHref: Notification = {
       ...notification,
       actionData: {
-        actions: [
-          { id: 'view', label: 'View Details', href: '/backend/orders/123' },
-        ],
+        actions: [{ id: 'view', label: 'View Details', href: '/backend/orders/123' }],
         primaryActionId: 'view',
       },
     } as Notification
@@ -227,7 +225,7 @@ describe('deliver notification subscriber', () => {
           if (name === 'em') return em
           throw new Error(`Missing dependency: ${name}`)
         },
-      }
+      },
     )
 
     expect(NotificationEmail).toHaveBeenCalledWith(
@@ -239,7 +237,7 @@ describe('deliver notification subscriber', () => {
             href: 'https://app.example.com/backend/orders/123',
           },
         ],
-      })
+      }),
     )
   })
 
@@ -284,7 +282,7 @@ describe('deliver notification subscriber', () => {
           if (name === 'em') return em
           throw new Error(`Missing dependency: ${name}`)
         },
-      }
+      },
     )
 
     expect(NotificationEmail).toHaveBeenCalledWith(
@@ -296,7 +294,7 @@ describe('deliver notification subscriber', () => {
             href: 'https://app.example.com/backend/sales/orders/11111111-1111-4111-8111-111111111111',
           },
         ],
-      })
+      }),
     )
   })
 
@@ -333,7 +331,7 @@ describe('deliver notification subscriber', () => {
           if (name === 'em') return em
           throw new Error(`Missing dependency: ${name}`)
         },
-      }
+      },
     )
 
     // Email should not be sent when panelUrl is null

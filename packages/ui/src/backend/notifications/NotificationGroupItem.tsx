@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell, AlertTriangle, CheckCircle2, XCircle, Info, Users } from 'lucide-react'
@@ -44,9 +44,7 @@ export function NotificationGroupItem({
   const severity = group.severity as keyof typeof severityIcons
   const IconComponent = severityIcons[severity] ?? Bell
 
-  const titleText = group.titleKey
-    ? t(group.titleKey, group.title, group.titleVariables ?? undefined)
-    : group.title
+  const titleText = group.titleKey ? t(group.titleKey, group.title, group.titleVariables ?? undefined) : group.title
 
   const bodyText = group.bodyKey
     ? t(group.bodyKey, group.body ?? undefined, group.bodyVariables ?? undefined)
@@ -95,10 +93,10 @@ export function NotificationGroupItem({
     <div
       className={cn(
         'group relative px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors border-b border-border/50',
-        hasUnread && 'bg-muted/30'
+        hasUnread && 'bg-muted/30',
       )}
       onClick={handleClick}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           handleClick()
@@ -107,25 +105,16 @@ export function NotificationGroupItem({
       role="button"
       tabIndex={0}
     >
-      {hasUnread && (
-        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-      )}
+      {hasUnread && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />}
 
       <div className="flex gap-3">
-        <div
-          className={cn(
-            'flex-shrink-0 mt-0.5',
-            severityColors[severity] ?? 'text-muted-foreground'
-          )}
-        >
+        <div className={cn('flex-shrink-0 mt-0.5', severityColors[severity] ?? 'text-muted-foreground')}>
           <IconComponent className="h-5 w-5" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h4 className={cn('text-sm font-medium', hasUnread && 'font-semibold')}>
-              {titleText}
-            </h4>
+            <h4 className={cn('text-sm font-medium', hasUnread && 'font-semibold')}>{titleText}</h4>
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Users className="h-3 w-3" />
@@ -142,18 +131,14 @@ export function NotificationGroupItem({
             </div>
           </div>
 
-          {bodyText && (
-            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-              {bodyText}
-            </p>
-          )}
+          {bodyText && <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{bodyText}</p>}
 
           <div className="mt-2 flex items-start gap-2">
             <Button
               variant="outline"
               size="sm"
               className="h-auto min-h-8"
-              onClick={(event) => {
+              onClick={event => {
                 event.stopPropagation()
                 handleViewGroup()
               }}
@@ -167,7 +152,7 @@ export function NotificationGroupItem({
                 variant="secondary"
                 size="sm"
                 className="h-auto min-h-8"
-                onClick={(event) => {
+                onClick={event => {
                   event.stopPropagation()
                   handleMarkAsRead()
                 }}

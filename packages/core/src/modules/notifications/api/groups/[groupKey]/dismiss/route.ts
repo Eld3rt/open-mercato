@@ -14,15 +14,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ groupKe
   }
 
   // Update all notifications in the group
-  const result = await em.nativeUpdate('notifications', {
-    groupKey,
-    recipientUserId: scope.userId,
-    tenantId: scope.tenantId,
-    status: { $ne: 'dismissed' },
-  }, {
-    status: 'dismissed',
-    dismissedAt: new Date(),
-  })
+  const result = await em.nativeUpdate(
+    'notifications',
+    {
+      groupKey,
+      recipientUserId: scope.userId,
+      tenantId: scope.tenantId,
+      status: { $ne: 'dismissed' },
+    },
+    {
+      status: 'dismissed',
+      dismissedAt: new Date(),
+    },
+  )
 
   return Response.json({ updated: result })
 }

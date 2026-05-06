@@ -22,10 +22,7 @@ export type NotificationHrefContext = {
   sourceModule?: string | null
 }
 
-export function renderNotificationHref(
-  href: string | undefined,
-  context: NotificationHrefContext
-): string | undefined {
+export function renderNotificationHref(href: string | undefined, context: NotificationHrefContext): string | undefined {
   if (!href) return undefined
 
   const placeholderMap: Array<[keyof NotificationHrefContext, string]> = [
@@ -48,13 +45,11 @@ export function renderNotificationHref(
 }
 
 export function sanitizeNotificationActions(
-  actions: NotificationAction[] | undefined
+  actions: NotificationAction[] | undefined,
 ): NotificationAction[] | undefined {
   if (!actions) {
     return undefined
   }
 
-  return actions.map((action) => (
-    action.href ? { ...action, href: assertSafeNotificationHref(action.href) } : action
-  ))
+  return actions.map(action => (action.href ? { ...action, href: assertSafeNotificationHref(action.href) } : action))
 }

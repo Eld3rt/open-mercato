@@ -4,11 +4,7 @@ import { Notification } from '../../data/entities'
 import { listNotificationGroupsSchema } from '../../data/validators'
 import { toNotificationGroupDto } from '../../lib/notificationMapper'
 import { resolveNotificationContext } from '../../lib/routeHelpers'
-import {
-  buildNotificationsCrudOpenApi,
-  createPagedListResponseSchema,
-  notificationGroupItemSchema,
-} from '../openapi'
+import { buildNotificationsCrudOpenApi, createPagedListResponseSchema, notificationGroupItemSchema } from '../openapi'
 
 export const metadata = {
   GET: { requireAuth: true },
@@ -55,7 +51,7 @@ export async function GET(req: Request) {
     'n.group_key',
     'n.type',
     'COUNT(*) as count',
-    'COUNT(CASE WHEN n.status = \'unread\' THEN 1 END) as unread_count',
+    "COUNT(CASE WHEN n.status = 'unread' THEN 1 END) as unread_count",
     'MAX(n.id) as latest_id',
     'MAX(n.created_at) as latest_created_at',
     'MAX(n.title) as title',

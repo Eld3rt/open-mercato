@@ -2,17 +2,18 @@ import type { NotificationDto, NotificationGroupDto } from '@open-mercato/shared
 import { Notification } from '../data/entities'
 
 export function toNotificationDto(notification: Notification): NotificationDto {
-  const createdAt = notification.createdAt instanceof Date
-    ? notification.createdAt
-    : (() => {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn(
-          '[notifications] Invalid createdAt on notification entity, falling back to current time',
-          { id: notification.id, createdAt: notification.createdAt },
-        )
-      }
-      return new Date()
-    })()
+  const createdAt =
+    notification.createdAt instanceof Date
+      ? notification.createdAt
+      : (() => {
+          if (process.env.NODE_ENV !== 'test') {
+            console.warn('[notifications] Invalid createdAt on notification entity, falling back to current time', {
+              id: notification.id,
+              createdAt: notification.createdAt,
+            })
+          }
+          return new Date()
+        })()
   return {
     id: notification.id,
     type: notification.type,
@@ -25,13 +26,16 @@ export function toNotificationDto(notification: Notification): NotificationDto {
     icon: notification.icon,
     severity: notification.severity,
     status: notification.status,
-    actions: notification.actionData?.actions?.map((action) => ({
-      id: action.id,
-      label: action.label,
-      labelKey: action.labelKey,
-      variant: action.variant,
-      icon: action.icon,
-    })) ?? [],
+    actions:
+      notification.actionData?.actions?.map(action => ({
+        id: action.id,
+        label: action.label,
+        labelKey: action.labelKey,
+        variant: action.variant,
+        icon: action.icon,
+        confirmRequired: action.confirmRequired,
+        confirmMessage: action.confirmMessage,
+      })) ?? [],
     primaryActionId: notification.actionData?.primaryActionId,
     sourceModule: notification.sourceModule,
     sourceEntityType: notification.sourceEntityType,

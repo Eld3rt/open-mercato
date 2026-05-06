@@ -1,11 +1,16 @@
-"use client"
+'use client'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Bell, AlertTriangle, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react'
 import { Button } from '../../primitives/button'
+import { useConfirmDialog } from '../confirm-dialog'
 import { cn } from '@open-mercato/shared/lib/utils'
 import { formatRelativeTime } from '@open-mercato/shared/lib/time'
-import type { NotificationDto, NotificationRendererProps, NotificationTypeAction } from '@open-mercato/shared/modules/notifications/types'
+import type {
+  NotificationDto,
+  NotificationRendererProps,
+  NotificationTypeAction,
+} from '@open-mercato/shared/modules/notifications/types'
 import type { TranslateFn } from '@open-mercato/shared/lib/i18n/context'
 import type { ComponentType } from 'react'
 
@@ -44,7 +49,6 @@ export type NotificationItemProps = {
    */
   customRenderer?: ComponentType<NotificationRendererProps>
 }
-
 
 function resolveNotificationText(params: {
   key?: string | null
@@ -85,6 +89,7 @@ export function NotificationItem({
   customRenderer: CustomRenderer,
 }: NotificationItemProps) {
   const router = useRouter()
+  const { confirm, ConfirmDialogElement } = useConfirmDialog()
   const [executing, setExecuting] = React.useState<string | null>(null)
 
   const isUnread = notification.status === 'unread'
@@ -115,6 +120,21 @@ export function NotificationItem({
 
   const handleAction = async (actionId: string, event?: React.MouseEvent) => {
     event?.stopPropagation()
+    const action = notification.actions.find(item => item.id === actionId)
+    if (action?.confirmRequired) {
+      const message = action.confirmMessage
+        ? t(action.confirmMessage, action.confirmMessage)
+        : t('notifications.confirm.default', 'Are you sure?')
+      const confirmed = await confirm({
+        text: message,
+        title: action.labelKey ? t(action.labelKey, action.label) : action.label,
+        variant: action.variant === 'destructive' ? 'destructive' : 'default',
+      })
+      if (!confirmed) {
+        return
+      }
+    }
+
     setExecuting(actionId)
     try {
       const result = await onExecuteAction(actionId)
@@ -132,7 +152,7 @@ export function NotificationItem({
   }
 
   // Convert notification actions to the format expected by custom renderers
-  const rendererActions: NotificationTypeAction[] = notification.actions.map((action) => ({
+  const rendererActions: NotificationTypeAction[] = notification.actions.map(action => ({
     id: action.id,
     labelKey: action.labelKey ?? action.label,
     variant: action.variant as NotificationTypeAction['variant'],
@@ -172,10 +192,10 @@ export function NotificationItem({
     <div
       className={cn(
         'group relative px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors',
-        isUnread && 'bg-muted/30'
+        isUnread && 'bg-muted/30',
       )}
       onClick={handleClick}
-      onKeyDown={(e) => {
+      onKeyDown={e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           handleClick()
@@ -184,56 +204,38 @@ export function NotificationItem({
       role="button"
       tabIndex={0}
     >
-      {isUnread && (
-        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
-      )}
+      {isUnread && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />}
 
       <div className="flex gap-3">
-        <div
-          className={cn(
-            'flex-shrink-0 mt-0.5',
-            severityColors[severity] ?? 'text-muted-foreground'
-          )}
-        >
+        <div className={cn('flex-shrink-0 mt-0.5', severityColors[severity] ?? 'text-muted-foreground')}>
           <IconComponent className="h-5 w-5" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h4 className={cn('text-sm font-medium', isUnread && 'font-semibold')}>
-              {titleText}
-            </h4>
+            <h4 className={cn('text-sm font-medium', isUnread && 'font-semibold')}>{titleText}</h4>
             <span className="flex-shrink-0 text-xs text-muted-foreground">
               {formatRelativeTime(notification.createdAt, { translate: t }) ?? ''}
             </span>
           </div>
 
-          {bodyText && (
-            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-              {bodyText}
-            </p>
-          )}
+          {bodyText && <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{bodyText}</p>}
 
           {hasActions && notification.status !== 'actioned' && (
             <div className="mt-2 flex flex-wrap items-start gap-2">
-              {notification.actions.map((action) => (
+              {notification.actions.map(action => (
                 <Button
                   key={action.id}
                   variant={
-                    (action.variant as 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost') ??
-                    'outline'
+                    (action.variant as 'default' | 'secondary' | 'destructive' | 'outline' | 'ghost') ?? 'outline'
                   }
                   size="sm"
                   className="h-auto min-h-8 max-w-full min-w-0 whitespace-normal break-words text-left"
-                  onClick={(event) => handleAction(action.id, event)}
+                  onClick={event => handleAction(action.id, event)}
                   disabled={executing !== null}
                 >
-                  {action.labelKey
-                    ? t(action.labelKey, action.label)
-                    : t(action.label, action.label)}
-                  {executing === action.id && (
-                    <Loader2 className="ml-1 h-3 w-3 animate-spin" />
-                  )}
+                  {action.labelKey ? t(action.labelKey, action.label) : t(action.label, action.label)}
+                  {executing === action.id && <Loader2 className="ml-1 h-3 w-3 animate-spin" />}
                 </Button>
               ))}
             </div>
