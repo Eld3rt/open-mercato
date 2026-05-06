@@ -104,3 +104,35 @@ export type NotificationPollData = {
   hasNew: boolean
   lastId?: string
 }
+
+export type NotificationGroupDto = {
+  groupKey: string
+  type: string
+  title: string
+  body?: string | null
+  titleKey?: string | null
+  bodyKey?: string | null
+  titleVariables?: Record<string, string> | null
+  bodyVariables?: Record<string, string> | null
+  icon?: string | null
+  severity: string
+  status: string
+  actions: Array<{
+    id: string
+    label: string
+    labelKey?: string
+    variant?: string
+    icon?: string
+  }>
+  primaryActionId?: string
+  sourceModule?: string | null
+  sourceEntityType?: string | null
+  sourceEntityId?: string | null
+  linkHref?: string | null
+  createdAt: string
+  readAt?: string | null
+  actionTaken?: string | null
+  count: number
+  latestId: string
+  unreadCount: number
+}

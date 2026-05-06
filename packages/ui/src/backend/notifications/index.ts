@@ -10,11 +10,15 @@ export type { NotificationPanelProps } from './NotificationPanel'
 export { NotificationItem } from './NotificationItem'
 export type { NotificationItemProps } from './NotificationItem'
 
+export { NotificationGroupItem } from './NotificationGroupItem'
+export type { NotificationGroupItemProps } from './NotificationGroupItem'
+
 export { useNotificationsPoll } from './useNotificationsPoll'
 export type { UseNotificationsPollResult } from './useNotificationsPoll'
 export { useNotificationsSse } from './useNotificationsSse'
 export type { UseNotificationsSseResult } from './useNotificationsSse'
 export { useNotifications } from './useNotifications'
+export { useNotificationGroups } from './useNotificationGroups'
 export { useNotificationEffect } from './useNotificationEffect'
 
-export type { NotificationDto } from '@open-mercato/shared/modules/notifications/types'
+export type { NotificationDto, NotificationGroupDto } from '@open-mercato/shared/modules/notifications/types'
