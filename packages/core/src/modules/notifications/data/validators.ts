@@ -118,6 +118,20 @@ export const notificationDeliveryConfigSchema = z.object({
   }).optional(),
 })
 
+export const bulkMarkAsReadSchema = z.object({
+  notificationIds: z.array(z.string().uuid()).min(1).max(1000),
+})
+
+export const bulkDismissSchema = z.object({
+  notificationIds: z.array(z.string().uuid()).min(1).max(1000),
+})
+
+export const bulkExecuteActionSchema = z.object({
+  notificationIds: z.array(z.string().uuid()).min(1).max(1000),
+  actionId: z.string().min(1),
+  payload: z.record(z.string(), z.unknown()).optional(),
+})
+
 export type CreateNotificationInput = z.infer<typeof createNotificationSchema>
 export type CreateBatchNotificationInput = z.infer<typeof createBatchNotificationSchema>
 export type CreateRoleNotificationInput = z.infer<typeof createRoleNotificationSchema>
@@ -126,3 +140,6 @@ export type ListNotificationsInput = z.infer<typeof listNotificationsSchema>
 export type ExecuteActionInput = z.infer<typeof executeActionSchema>
 export type NotificationDeliveryConfigInput = z.infer<typeof notificationDeliveryConfigSchema>
 export type ListNotificationGroupsInput = z.infer<typeof listNotificationGroupsSchema>
+export type BulkMarkAsReadInput = z.infer<typeof bulkMarkAsReadSchema>
+export type BulkDismissInput = z.infer<typeof bulkDismissSchema>
+export type BulkExecuteActionInput = z.infer<typeof bulkExecuteActionSchema>

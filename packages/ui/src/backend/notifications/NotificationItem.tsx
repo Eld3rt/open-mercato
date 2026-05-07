@@ -1,7 +1,7 @@
 'use client'
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Bell, AlertTriangle, CheckCircle2, XCircle, Info, Loader2 } from 'lucide-react'
+import { X, Bell, AlertTriangle, CheckCircle2, XCircle, Info, Loader2, Check } from 'lucide-react'
 import { Button } from '../../primitives/button'
 import { useConfirmDialog } from '../confirm-dialog'
 import { cn } from '@open-mercato/shared/lib/utils'
@@ -48,6 +48,18 @@ export type NotificationItemProps = {
    * ```
    */
   customRenderer?: ComponentType<NotificationRendererProps>
+  /**
+   * Optional: Enable bulk selection mode
+   */
+  isBulkSelectable?: boolean
+  /**
+   * Optional: Whether this notification is selected in bulk mode
+   */
+  isSelected?: boolean
+  /**
+   * Optional: Callback when selection changes in bulk mode
+   */
+  onSelectionChange?: (id: string, selected: boolean) => void
 }
 
 function resolveNotificationText(params: {
@@ -87,6 +99,9 @@ export function NotificationItem({
   onDismiss,
   t,
   customRenderer: CustomRenderer,
+  isBulkSelectable = false,
+  isSelected = false,
+  onSelectionChange,
 }: NotificationItemProps) {
   const router = useRouter()
   const { confirm, ConfirmDialogElement } = useConfirmDialog()
@@ -110,12 +125,21 @@ export function NotificationItem({
   })
 
   const handleClick = async () => {
+    if (isBulkSelectable) {
+      onSelectionChange?.(notification.id, !isSelected)
+      return
+    }
     if (isUnread) {
       await onMarkAsRead()
     }
     if (notification.linkHref) {
       router.push(notification.linkHref)
     }
+  }
+
+  const handleCheckboxChange = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    onSelectionChange?.(notification.id, !isSelected)
   }
 
   const handleAction = async (actionId: string, event?: React.MouseEvent) => {
@@ -204,12 +228,26 @@ export function NotificationItem({
       role="button"
       tabIndex={0}
     >
-      {isUnread && <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />}
+      {isUnread && !isBulkSelectable && (
+        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-primary" />
+      )}
 
       <div className="flex gap-3">
-        <div className={cn('flex-shrink-0 mt-0.5', severityColors[severity] ?? 'text-muted-foreground')}>
-          <IconComponent className="h-5 w-5" />
-        </div>
+        {isBulkSelectable && (
+          <div
+            className="flex-shrink-0 mt-1 flex items-center justify-center w-5 h-5 border border-input rounded"
+            onClick={handleCheckboxChange}
+          >
+            {isSelected && <Check className="h-4 w-4 text-primary" />}
+          </div>
+        )}
+        {!isBulkSelectable && (
+          <div
+            className={cn('flex-shrink-0 mt-0.5', severityColors[severity] ?? 'text-muted-foreground')}
+          >
+            <IconComponent className="h-5 w-5" />
+          </div>
+        )}
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
