@@ -87,6 +87,8 @@ export type NotificationDto = {
     labelKey?: string
     variant?: string
     icon?: string
+    confirmRequired?: boolean
+    confirmMessage?: string
   }>
   primaryActionId?: string
   sourceModule?: string | null
@@ -123,6 +125,8 @@ export type NotificationGroupDto = {
     labelKey?: string
     variant?: string
     icon?: string
+    confirmRequired?: boolean
+    confirmMessage?: string
   }>
   primaryActionId?: string
   sourceModule?: string | null

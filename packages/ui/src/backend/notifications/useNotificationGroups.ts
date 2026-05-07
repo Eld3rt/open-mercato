@@ -1,4 +1,4 @@
-"use client"
+'use client'
 import * as React from 'react'
 import { apiCall } from '../utils/apiCall'
 import type { NotificationGroupDto } from '@open-mercato/shared/modules/notifications/types'
@@ -68,29 +68,35 @@ export function useNotificationGroups(options: UseNotificationGroupsOptions = {}
     console.log('View group:', groupKey)
   }, [])
 
-  const markGroupAsRead = React.useCallback(async (groupKey: string) => {
-    try {
-      await apiCall(`/api/notifications/groups/${groupKey}/read`, {
-        method: 'POST',
-      })
-      // Refresh the groups
-      await fetchGroups()
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to mark group as read')
-    }
-  }, [fetchGroups])
+  const markGroupAsRead = React.useCallback(
+    async (groupKey: string) => {
+      try {
+        await apiCall(`/api/notifications/groups/${groupKey}/read`, {
+          method: 'POST',
+        })
+        // Refresh the groups
+        await fetchGroups()
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : 'Failed to mark group as read')
+      }
+    },
+    [fetchGroups],
+  )
 
-  const dismissGroup = React.useCallback(async (groupKey: string) => {
-    try {
-      await apiCall(`/api/notifications/groups/${groupKey}/dismiss`, {
-        method: 'POST',
-      })
-      // Refresh the groups
-      await fetchGroups()
-    } catch (err) {
-      throw new Error(err instanceof Error ? err.message : 'Failed to dismiss group')
-    }
-  }, [fetchGroups])
+  const dismissGroup = React.useCallback(
+    async (groupKey: string) => {
+      try {
+        await apiCall(`/api/notifications/groups/${groupKey}/dismiss`, {
+          method: 'POST',
+        })
+        // Refresh the groups
+        await fetchGroups()
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : 'Failed to dismiss group')
+      }
+    },
+    [fetchGroups],
+  )
 
   return {
     data,

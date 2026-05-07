@@ -1,7 +1,11 @@
 import type { EntityManager } from '@mikro-orm/postgresql'
 import { Notification } from '../data/entities'
 import { NOTIFICATION_EVENTS } from '../lib/events'
-import { DEFAULT_NOTIFICATION_DELIVERY_CONFIG, resolveNotificationDeliveryConfig, resolveNotificationPanelUrl } from '../lib/deliveryConfig'
+import {
+  DEFAULT_NOTIFICATION_DELIVERY_CONFIG,
+  resolveNotificationDeliveryConfig,
+  resolveNotificationPanelUrl,
+} from '../lib/deliveryConfig'
 import { getNotificationDeliveryStrategies } from '../lib/deliveryStrategies'
 import { renderNotificationHref } from '../lib/safeHref'
 import { sendEmail } from '@open-mercato/shared/lib/email/send'
@@ -48,9 +52,7 @@ const buildPanelLink = (panelUrl: string, notificationId: string) => {
   return `${panelUrl}${separator}notificationId=${encodeURIComponent(notificationId)}`
 }
 
-const resolveNotificationCopy = async (
-  notification: Notification
-) => {
+const resolveNotificationCopy = async (notification: Notification) => {
   const dict = await loadDictionary(defaultLocale)
   const t = createFallbackTranslator(dict)
 
@@ -60,7 +62,7 @@ const resolveNotificationCopy = async (
 
   const body = notification.bodyKey
     ? t(notification.bodyKey, notification.body ?? notification.bodyKey ?? '', notification.bodyVariables ?? undefined)
-    : notification.body ?? null
+    : (notification.body ?? null)
 
   return { title, body, t }
 }
@@ -78,17 +80,11 @@ const resolveRecipient = async (
   if (notification.organizationId) {
     where.organizationId = notification.organizationId
   }
-  const record = await findOneWithDecryption(
-    em,
-    User,
-    where,
-    undefined,
-    {
-      tenantId: notification.tenantId,
-      organizationId: notification.organizationId ?? null,
-      encryptionService: encryptionService ?? null,
-    },
-  )
+  const record = await findOneWithDecryption(em, User, where, undefined, {
+    tenantId: notification.tenantId,
+    organizationId: notification.organizationId ?? null,
+    encryptionService: encryptionService ?? null,
+  })
   if (!record) return null
   return {
     email: typeof record.email === 'string' ? record.email : null,
@@ -96,10 +92,11 @@ const resolveRecipient = async (
   }
 }
 
-
 export default async function handle(payload: NotificationCreatedPayload, ctx: ResolverContext) {
   debug('deliver notification event', payload)
-  const deliveryConfig = await resolveNotificationDeliveryConfig(ctx, { defaultValue: DEFAULT_NOTIFICATION_DELIVERY_CONFIG })
+  const deliveryConfig = await resolveNotificationDeliveryConfig(ctx, {
+    defaultValue: DEFAULT_NOTIFICATION_DELIVERY_CONFIG,
+  })
   if (!deliveryConfig.strategies.email.enabled) {
     debug('email delivery disabled')
   }
@@ -135,13 +132,13 @@ export default async function handle(payload: NotificationCreatedPayload, ctx: R
   const panelLink = panelUrl ? buildPanelLink(panelUrl, notification.id) : null
   const baseOrigin = panelUrl ? new URL(panelUrl).origin : null
   const actionLinks = (notification.actionData?.actions ?? [])
-    .map((action) => {
+    .map(action => {
       const href = renderNotificationHref(action.href, {
         sourceModule: notification.sourceModule,
         sourceEntityType: notification.sourceEntityType,
         sourceEntityId: notification.sourceEntityId,
       })
-      const fullHref = (href && baseOrigin) ? `${baseOrigin}${href}` : panelLink
+      const fullHref = href && baseOrigin ? `${baseOrigin}${href}` : panelLink
       if (!fullHref) return null
       return {
         id: action.id,
@@ -157,8 +154,14 @@ export default async function handle(payload: NotificationCreatedPayload, ctx: R
     const copy = {
       preview: t('notifications.delivery.email.preview', 'New notification'),
       heading: t('notifications.delivery.email.heading', 'You have a new notification'),
-      bodyIntro: t('notifications.delivery.email.bodyIntro', 'Review the notification details and take any required actions.'),
-      actionNotice: t('notifications.delivery.email.actionNotice', 'Actions are available in Open Mercato and are read-only in this email.'),
+      bodyIntro: t(
+        'notifications.delivery.email.bodyIntro',
+        'Review the notification details and take any required actions.',
+      ),
+      actionNotice: t(
+        'notifications.delivery.email.actionNotice',
+        'Actions are available in Open Mercato and are read-only in this email.',
+      ),
       openCta: t('notifications.delivery.email.openCta', 'Open notification center'),
       footer: t('notifications.delivery.email.footer', 'Open Mercato notifications'),
     }
