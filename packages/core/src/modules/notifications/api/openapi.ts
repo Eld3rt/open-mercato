@@ -107,10 +107,18 @@ export const notificationSettingsUpdateResponseSchema = z.object({
   settings: notificationDeliveryConfigSchema,
 })
 
+export const bulkActionResponseSchema = z.object({
+  ok: z.boolean(),
+  updated: z.number(),
+})
+
 export {
   createPagedListResponseSchema,
   listNotificationsSchema,
   createNotificationSchema,
   executeActionSchema,
   notificationDeliveryConfigSchema,
-}
+  bulkMarkAsReadSchema,
+  bulkDismissSchema,
+  bulkExecuteActionSchema,
+} from '../data/validators'
