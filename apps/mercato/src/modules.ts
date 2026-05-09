@@ -48,6 +48,7 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'shipping_carriers', from: '@open-mercato/core' },
   { id: 'webhooks', from: '@open-mercato/webhooks' },
   { id: 'customer_accounts', from: '@open-mercato/core' },
+  { id: 'tags', from: '@open-mercato/core' },
   { id: 'portal', from: '@open-mercato/core' },
   { id: 'example', from: '@app' },
 ]
