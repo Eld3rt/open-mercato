@@ -50,6 +50,7 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'customer_accounts', from: '@open-mercato/core' },
   { id: 'tags', from: '@open-mercato/core' },
   { id: 'reminders', from: '@open-mercato/core' },
+  { id: 'shortcuts', from: '@open-mercato/core' },
   { id: 'portal', from: '@open-mercato/core' },
   { id: 'example', from: '@app' },
 ]
