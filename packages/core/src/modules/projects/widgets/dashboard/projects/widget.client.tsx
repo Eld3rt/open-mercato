@@ -1,11 +1,11 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/card'
-import { Badge } from '@/ui/components/badge'
-import { Progress } from '@/ui/components/progress'
-import { useT } from '@/core/i18n'
-import { Project } from '../../../data/entities'
+import { Badge } from '@open-mercato/ui/primitives/badge'
+import { Card, CardContent } from '@open-mercato/ui/primitives/card'
+import { Progress } from '@open-mercato/ui/primitives/progress'
+import { useT } from '@open-mercato/shared/lib/i18n/context'
+import type { Project } from '../../../data/entities'
 
 interface ProjectCardProps {
   project: Project
