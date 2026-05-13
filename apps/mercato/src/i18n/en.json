@@ -837,5 +837,16 @@
   "vector.api.errors.purgeFailed": "Vector index purge failed",
   "vector.api.errors.reindexFailed": "Vector reindex failed",
   "vector.api.errors.searchFailed": "Vector search failed",
-  "vector.api.errors.updateFailed": "Failed to update vector settings."
+  "vector.api.errors.updateFailed": "Failed to update vector settings.",
+  "projects.dashboard.loading": "Loading projects…",
+  "projects.dashboard.error": "Unable to load recent projects.",
+  "projects.dashboard.empty": "No recent projects found.",
+  "projects.status.active": "Active",
+  "projects.status.completed": "Completed",
+  "projects.status.on-hold": "On Hold",
+  "projects.status.cancelled": "Cancelled",
+  "projects.priority.low": "Low",
+  "projects.priority.medium": "Medium",
+  "projects.priority.high": "High",
+  "projects.priority.urgent": "Urgent"
 }
