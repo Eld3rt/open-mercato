@@ -1,12 +1,21 @@
-import { lazyDashboardWidget } from '@/core/widgets/dashboard'
+import { lazyDashboardWidget, type DashboardWidgetModule } from '@open-mercato/shared/modules/dashboard/widgets'
 
-export const widget = lazyDashboardWidget({
-  name: 'projects',
-  displayName: 'Recent Projects',
-  description: 'View your recent projects and their status',
-  defaultSize: { width: 4, height: 3 },
-  minSize: { width: 2, height: 2 },
-  maxSize: { width: 6, height: 4 },
-  category: 'projects',
-  icon: 'FolderOpen',
-})
+const ProjectDashboardWidget = lazyDashboardWidget(() => import('./widget.client'))
+
+const widget: DashboardWidgetModule = {
+  metadata: {
+    id: 'projects.dashboard.recentProjects',
+    title: 'Recent Projects',
+    description: 'View your recent projects and their status',
+    features: ['projects.view'],
+    defaultSize: 'md',
+    defaultEnabled: true,
+    tags: ['projects', 'progress', 'management'],
+    category: 'projects',
+    icon: 'folder-open',
+    supportsRefresh: true,
+  },
+  Widget: ProjectDashboardWidget,
+}
+
+export default widget

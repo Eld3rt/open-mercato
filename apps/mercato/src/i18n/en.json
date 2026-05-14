@@ -848,5 +848,18 @@
   "projects.priority.low": "Low",
   "projects.priority.medium": "Medium",
   "projects.priority.high": "High",
-  "projects.priority.urgent": "Urgent"
+  "projects.priority.urgent": "Urgent",
+  "projectTasks.dashboard.loading": "Loading project tasks…",
+  "projectTasks.dashboard.error": "Unable to load upcoming tasks.",
+  "projectTasks.dashboard.empty": "No upcoming project tasks found.",
+  "projectTasks.status.todo": "To do",
+  "projectTasks.status.in-progress": "In progress",
+  "projectTasks.status.blocked": "Blocked",
+  "projectTasks.status.done": "Done",
+  "projectTasks.priority.low": "Low",
+  "projectTasks.priority.medium": "Medium",
+  "projectTasks.priority.high": "High",
+  "projectTasks.priority.urgent": "Urgent",
+  "projectTasks.task.projectId": "Project",
+  "projectTasks.task.noDueDate": "No due date"
 }
