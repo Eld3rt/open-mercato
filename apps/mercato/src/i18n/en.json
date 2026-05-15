@@ -861,5 +861,12 @@
   "projectTasks.priority.high": "High",
   "projectTasks.priority.urgent": "Urgent",
   "projectTasks.task.projectId": "Project",
-  "projectTasks.task.noDueDate": "No due date"
+  "projectTasks.task.noDueDate": "No due date",
+  "projectComments.dashboard.loading": "Loading recent comments…",
+  "projectComments.dashboard.error": "Unable to load recent comments.",
+  "projectComments.dashboard.empty": "No recent comments found.",
+  "projectComments.comment.byUser": "By",
+  "projectComments.comment.onTask": "On task",
+  "projectComments.comment.onProject": "On project",
+  "projectComments.comment.placeholder": "Write a comment..."
 }
