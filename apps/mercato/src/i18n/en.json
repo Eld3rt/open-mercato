@@ -868,5 +868,20 @@
   "projectComments.comment.byUser": "By",
   "projectComments.comment.onTask": "On task",
   "projectComments.comment.onProject": "On project",
-  "projectComments.comment.placeholder": "Write a comment..."
+  "projectComments.comment.placeholder": "Write a comment...",
+  "projectTimeTracking.dashboard.loading": "Loading recent time entries…",
+  "projectTimeTracking.dashboard.error": "Unable to load recent time entries.",
+  "projectTimeTracking.dashboard.empty": "No recent time entries found.",
+  "projectTimeTracking.entry.by": "By",
+  "projectTimeTracking.entry.onTask": "On task",
+  "projectTimeTracking.entry.onProject": "On project",
+  "projectTimeTracking.entry.noDescription": "No description",
+  "projectTimeTracking.entry.status": "Status",
+  "projectTimeTracking.entry.duration": "Duration",
+  "projectTimeTracking.entry.billable": "Billable",
+  "projectTimeTracking.entry.nonBillable": "Non-billable",
+  "projectTimeTracking.entry.description": "Description",
+  "projectTimeTracking.page.title": "Project Time Tracking",
+  "projectTimeTracking.status.running": "Running",
+  "projectTimeTracking.status.stopped": "Stopped"
 }
