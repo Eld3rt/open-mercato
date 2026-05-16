@@ -1,0 +1,39 @@
+import { z } from 'zod'
+
+export const createTimeEntrySchema = z.object({
+  projectId: z.string().uuid(),
+  taskId: z.string().uuid().optional(),
+  description: z.string().max(1000).optional(),
+  startedAt: z.string().datetime().optional(),
+  endedAt: z.string().datetime().optional(),
+  billable: z.boolean().default(true),
+})
+
+export const updateTimeEntrySchema = z
+  .object({
+    id: z.string().uuid(),
+    projectId: z.string().uuid().optional(),
+    taskId: z.string().uuid().optional(),
+    description: z.string().max(1000).optional(),
+    startedAt: z.string().datetime().optional(),
+    endedAt: z.string().datetime().nullable().optional(),
+    status: z.enum(['running', 'stopped']).optional(),
+    billable: z.boolean().optional(),
+  })
+  .partial()
+  .refine(value => value.id !== undefined, {
+    message: 'Time entry id is required',
+    path: ['id'],
+  })
+
+export const queryTimeEntriesSchema = z.object({
+  projectId: z.string().uuid().optional(),
+  taskId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
+  status: z.enum(['running', 'stopped']).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  page: z.coerce.number().min(1).default(1),
+  pageSize: z.coerce.number().min(1).max(100).default(50),
+  sortBy: z.enum(['startedAt', 'endedAt', 'createdAt']).default('startedAt'),
+})
