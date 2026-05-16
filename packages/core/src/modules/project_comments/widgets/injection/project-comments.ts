@@ -1,3 +1,5 @@
+import { lazy } from 'react'
+import { InjectionPosition } from '@open-mercato/shared/modules/widgets/injection-position'
 import type { InjectionWidget } from '@open-mercato/shared/lib/widgets/injection'
 
 export const projectCommentsWidget: InjectionWidget = {
