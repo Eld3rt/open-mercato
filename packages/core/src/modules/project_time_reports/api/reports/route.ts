@@ -94,14 +94,13 @@ export async function GET(request: NextRequest) {
     }
 
     const existing = aggregated.get(key) || {
-      [groupByType === 'project'
-        ? 'projectId'
+      ...(groupByType === 'project'
+        ? { projectId: key }
         : groupByType === 'task'
-          ? 'taskId'
+          ? { taskId: entry.taskId ?? null }
           : groupByType === 'user'
-            ? 'userId'
-            : 'period']:
-        groupByType === 'project' ? key : groupByType === 'task' ? key : groupByType === 'user' ? key : key,
+            ? { userId: key }
+            : { period: key }),
       totalMinutes: 0,
       billableMinutes: 0,
       entriesCount: 0,
