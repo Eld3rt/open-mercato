@@ -52,6 +52,7 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'project_tasks', from: '@open-mercato/core' },
   { id: 'project_comments', from: '@open-mercato/core' },
   { id: 'project_time_tracking', from: '@open-mercato/core' },
+  { id: 'project_time_reports', from: '@open-mercato/core' },
   { id: 'tags', from: '@open-mercato/core' },
   { id: 'reminders', from: '@open-mercato/core' },
   { id: 'shortcuts', from: '@open-mercato/core' },
