@@ -11,13 +11,13 @@ export const generateReportSchema = z.object({
 })
 
 export const reportSummarySchema = z.object({
-  period: z.string(),
+  period: z.string().optional(),
   totalMinutes: z.number(),
   totalHours: z.number(),
   billableMinutes: z.number(),
   billableHours: z.number(),
   entriesCount: z.number(),
   projectId: z.string().uuid().optional(),
-  taskId: z.string().uuid().optional(),
+  taskId: z.string().uuid().nullable().optional(),
   userId: z.string().uuid().optional(),
 })
