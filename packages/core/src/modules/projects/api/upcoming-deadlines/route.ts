@@ -17,19 +17,25 @@ export async function GET(request: NextRequest) {
 
   const orm = await getOrm()
 
-  // Calculate date 7 days from now
   const now = new Date()
   const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-  const projects = await orm.em.find(Project, {
-    organizationId: auth.organizationId,
-    tenantId: auth.tenantId,
-    deletedAt: null,
-    dueDate: {
-      $gte: now,
-      $lte: sevenDaysFromNow,
+  const projects = await orm.em.find(
+    Project,
+    {
+      organizationId: auth.organizationId,
+      tenantId: auth.tenantId,
+      deletedAt: null,
+      dueDate: {
+        $gte: now,
+        $lte: sevenDaysFromNow,
+      },
     },
-  })
+    {
+      orderBy: { dueDate: 'ASC' },
+      limit: 5,
+    },
+  )
 
   return NextResponse.json({
     items: projects.map(p => ({
@@ -37,6 +43,7 @@ export async function GET(request: NextRequest) {
       name: p.name,
       dueDate: p.dueDate,
       status: p.status ?? 'active',
+      priority: p.priority ?? 'medium',
     })),
     total: projects.length,
   })

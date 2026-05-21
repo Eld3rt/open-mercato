@@ -20,37 +20,25 @@ interface DeadlinesResponse {
 }
 
 async function fetchUpcomingDeadlines(): Promise<DeadlinesResponse> {
-  const now = new Date()
-  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-
-  const params = new URLSearchParams({
-    page: '1',
-    pageSize: '5',
-    sort: 'due_date',
-  })
-
-  const response = await fetch(`/api/projects/projects?${params.toString()}`)
+  const response = await fetch('/api/projects/upcoming-deadlines')
   if (!response.ok) {
-    throw new Error('Failed to load projects')
+    throw new Error('Failed to load upcoming deadlines')
   }
 
   const data = await response.json()
+  const now = new Date()
   const items: UpcomingProject[] = (data.items || [])
-    .filter((p: any) => {
-      if (!p.dueDate || p.status === 'completed' || p.status === 'cancelled') return false
-      const dueDate = new Date(p.dueDate)
-      return dueDate >= now && dueDate <= sevenDaysFromNow
-    })
     .map((p: any) => ({
       id: p.id,
       name: p.name,
       dueDate: p.dueDate,
-      priority: p.priority,
-      status: p.status,
-      daysUntilDue: Math.ceil((new Date(p.dueDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
+      priority: p.priority ?? 'medium',
+      status: p.status ?? 'active',
+      daysUntilDue: Math.max(
+        0,
+        Math.ceil((new Date(p.dueDate).getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
+      ),
     }))
-    .sort((a: UpcomingProject, b: UpcomingProject) => a.daysUntilDue - b.daysUntilDue)
-    .slice(0, 5)
 
   return { items, total: items.length }
 }
@@ -81,7 +69,7 @@ export default function UpcomingDeadlinesWidget() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['projects', 'upcomingDeadlines'],
     queryFn: fetchUpcomingDeadlines,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchInterval: 5 * 60 * 1000,
   })
 
   if (isLoading) {
