@@ -5,7 +5,7 @@ export const createTimeEntrySchema = z.object({
   taskId: z.string().uuid().optional(),
   description: z.string().max(1000).optional(),
   startedAt: z.string().datetime().optional(),
-  endedAt: z.string().datetime().optional(),
+  endedAt: z.string().datetime().nullable().optional(),
   billable: z.boolean().default(true),
 })
 
