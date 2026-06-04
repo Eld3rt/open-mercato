@@ -41,11 +41,14 @@ function collectRequiredFeatures(items: InjectionMenuItem[]): string[] {
 async function readPortalGrantedFeatures(features: string[]): Promise<Set<string>> {
   if (features.length === 0) return new Set()
   try {
-    const { ok, result: data } = await apiCall<PortalFeatureCheckResponse>('/api/customer_accounts/portal/feature-check', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ features }),
-    })
+    const { ok, result: data } = await apiCall<PortalFeatureCheckResponse>(
+      '/api/customer_accounts/portal/feature-check',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ features }),
+      },
+    )
     if (!ok || !data?.ok) return new Set()
     return new Set(data.granted ?? [])
   } catch {
@@ -110,18 +113,27 @@ export function usePortalInjectedMenuItems(surfaceId: PortalMenuSurfaceId): {
     }
   }, [rawItems])
 
+  const isPortalRelativeHref = (href: string): boolean => {
+    return (
+      href === '/portal' || href.startsWith('/portal/') || href.startsWith('/portal?') || href.startsWith('/portal#')
+    )
+  }
+
+  const resolvePortalHref = (href: string): string => {
+    if (!orgSlug || !isPortalRelativeHref(href)) return href
+    return `/${orgSlug}${href === '/portal' ? '/portal' : href}`
+  }
+
   const items = React.useMemo(
     () =>
       rawItems
-        .filter((item) => {
+        .filter(item => {
           const features = item.features ?? []
           return features.length === 0 || hasAllFeatures(grantedFeatureList, features)
         })
-        .map((item) => ({
+        .map(item => ({
           ...item,
-          href: item.href && orgSlug && item.href.startsWith('/portal/')
-            ? `/${orgSlug}${item.href}`
-            : item.href,
+          href: item.href ? resolvePortalHref(item.href) : item.href,
         })),
     [rawItems, grantedFeatureList, orgSlug],
   )
