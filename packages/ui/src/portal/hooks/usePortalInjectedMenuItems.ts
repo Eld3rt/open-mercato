@@ -90,23 +90,25 @@ export function usePortalInjectedMenuItems(surfaceId: PortalMenuSurfaceId): {
   const grantedFeatureList = React.useMemo(() => Array.from(grantedFeatures), [grantedFeatures])
 
   const rawItems = React.useMemo(() => {
-    const entries: InjectionMenuItem[] = []
-    for (const widget of widgets) {
-      if (!('menuItems' in widget)) continue
-      const metadataFeatures = widget.metadata.features ?? []
-      for (const menuItem of widget.menuItems) {
-        const features = [...metadataFeatures, ...(menuItem.features ?? [])]
-        const normalizedLabelKey =
-          menuItem.labelKey ??
-          (typeof menuItem.label === 'string' && menuItem.label.includes('.') ? menuItem.label : undefined)
-        entries.push({
-          ...menuItem,
-          labelKey: normalizedLabelKey,
-          features,
+    return widgets
+      .filter(
+        (widget): widget is { menuItems: InjectionMenuItem[]; metadata: { features?: string[] } } =>
+          'menuItems' in widget,
+      )
+      .flatMap(widget => {
+        const metadataFeatures = widget.metadata.features ?? []
+        return widget.menuItems.map(menuItem => {
+          const features = [...metadataFeatures, ...(menuItem.features ?? [])]
+          const normalizedLabelKey =
+            menuItem.labelKey ??
+            (typeof menuItem.label === 'string' && menuItem.label.includes('.') ? menuItem.label : undefined)
+          return {
+            ...menuItem,
+            labelKey: normalizedLabelKey,
+            features,
+          }
         })
-      }
-    }
-    return entries
+      })
   }, [widgets])
 
   React.useEffect(() => {
