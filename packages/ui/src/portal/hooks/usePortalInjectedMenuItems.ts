@@ -28,14 +28,24 @@ type PortalFeatureCheckResponse = {
 }
 
 function collectRequiredFeatures(items: InjectionMenuItem[]): string[] {
-  const set = new Set<string>()
-  for (const item of items) {
-    for (const feature of item.features ?? []) {
-      if (!feature || feature.trim().length === 0) continue
-      set.add(feature)
-    }
-  }
-  return Array.from(set)
+  return Array.from(
+    new Set(
+      items
+        .flatMap(item => item.features ?? [])
+        .filter((feature): feature is string => typeof feature === 'string' && feature.trim().length > 0),
+    ),
+  )
+}
+
+const PORTAL_RELATIVE_HREF = /^\/portal(?:[/?#].*)?$/
+
+function isPortalRelativeHref(href: string): boolean {
+  return PORTAL_RELATIVE_HREF.test(href)
+}
+
+function resolvePortalHref(href: string, orgSlug: string): string {
+  if (!orgSlug || !isPortalRelativeHref(href)) return href
+  return `/${orgSlug}${href}`
 }
 
 async function readPortalGrantedFeatures(features: string[]): Promise<Set<string>> {
@@ -112,17 +122,6 @@ export function usePortalInjectedMenuItems(surfaceId: PortalMenuSurfaceId): {
       mounted = false
     }
   }, [rawItems])
-
-  const isPortalRelativeHref = (href: string): boolean => {
-    return (
-      href === '/portal' || href.startsWith('/portal/') || href.startsWith('/portal?') || href.startsWith('/portal#')
-    )
-  }
-
-  const resolvePortalHref = (href: string): string => {
-    if (!orgSlug || !isPortalRelativeHref(href)) return href
-    return `/${orgSlug}${href === '/portal' ? '/portal' : href}`
-  }
 
   const items = React.useMemo(
     () =>
