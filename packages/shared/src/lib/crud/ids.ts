@@ -9,15 +9,10 @@ function isUuid(value: unknown): value is string {
   return typeof value === 'string' && UUID_REGEX.test(value)
 }
 
-function normalizeIdList(values: string[]): string[] {
-  if (values.length === 0) return values
-  const deduped = new Set<string>()
-  for (const value of values) {
-    const trimmed = value.trim()
-    if (!trimmed || !isUuid(trimmed)) continue
-    deduped.add(trimmed)
-  }
-  return Array.from(deduped)
+function normalizeUuidList(values: string[]): string[] {
+  return Array.from(
+    new Set(values.map(value => value.trim()).filter((value): value is string => value.length > 0 && isUuid(value))),
+  )
 }
 
 function readExistingIds(filter: unknown): string[] | null {
@@ -30,9 +25,7 @@ function readExistingIds(filter: unknown): string[] | null {
   if (isUuid(operators.$eq)) return [operators.$eq]
 
   if (Array.isArray(operators.$in)) {
-    const parsed = normalizeIdList(
-      operators.$in.filter((value): value is string => typeof value === 'string'),
-    )
+    const parsed = normalizeUuidList(operators.$in.filter((value): value is string => typeof value === 'string'))
     return parsed
   }
 
@@ -42,7 +35,7 @@ function readExistingIds(filter: unknown): string[] | null {
 export function parseIdsParam(raw: unknown, maxIds: number = MAX_IDS_PER_REQUEST): string[] {
   if (!isNonEmptyString(raw)) return []
   const safeMax = Number.isFinite(maxIds) && maxIds > 0 ? Math.floor(maxIds) : MAX_IDS_PER_REQUEST
-  const parsed = normalizeIdList(raw.split(','))
+  const parsed = normalizeUuidList(raw.split(','))
   return parsed.slice(0, safeMax)
 }
 
@@ -60,7 +53,7 @@ export function mergeIdFilter<Fields extends Record<string, unknown>>(
     return { ...existingFilters, id: { $in: parsedIds } }
   }
 
-  const intersection = existingIds.filter((id) => allowed.has(id))
+  const intersection = existingIds.filter(id => allowed.has(id))
   return {
     ...existingFilters,
     id: { $in: intersection },
