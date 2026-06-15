@@ -7,7 +7,11 @@ import { id, title, tenant_id, organization_id, is_done, created_at } from '@/.m
 import type { Where, WhereValue } from '@open-mercato/shared/lib/query/types'
 import type { TodoListItem } from '../../types'
 import ceEntities from '../../ce'
-import { buildCustomFieldSelectorsForEntity, extractCustomFieldsFromItem, buildCustomFieldFiltersFromQuery } from '@open-mercato/shared/lib/crud/custom-fields'
+import {
+  buildCustomFieldSelectorsForEntity,
+  extractCustomFieldsFromItem,
+  buildCustomFieldFiltersFromQuery,
+} from '@open-mercato/shared/lib/crud/custom-fields'
 import { CustomFieldDef } from '@open-mercato/core/modules/entities/data/entities'
 import type { CustomFieldSet } from '@open-mercato/shared/modules/entities'
 import { todoCrudEvents, todoCrudIndexer } from '../../commands/todos'
@@ -45,7 +49,7 @@ type Query = z.infer<typeof querySchema>
 
 // Start from code-declared field sets (declared in ce.ts); extend per-request from DB definitions
 const baseFieldSets: CustomFieldSet[] = []
-const todoEntity = Array.isArray(ceEntities) ? ceEntities.find((entity) => entity?.id === 'example:todo') : undefined
+const todoEntity = Array.isArray(ceEntities) ? ceEntities.find(entity => entity?.id === 'example:todo') : undefined
 if (todoEntity?.fields?.length) {
   baseFieldSets.push({ entity: todoEntity.id, fields: todoEntity.fields, source: 'example' })
 }
@@ -124,16 +128,10 @@ export const { metadata, GET, POST, PUT, DELETE } = makeCrudRoute({
     },
     allowCsv: true,
     csv: {
-      headers: ['id', 'title', 'is_done', 'organization_id', 'tenant_id', ...dynamicCfKeys.map((k) => `cf_${k}`)],
+      headers: ['id', 'title', 'is_done', 'organization_id', 'tenant_id', ...dynamicCfKeys.map(k => `cf_${k}`)],
       row: (t: TodoListItem) => {
-        const base = [
-          t.id,
-          t.title,
-          t.is_done ? 'true' : 'false',
-          t.organization_id ?? '',
-          t.tenant_id ?? '',
-        ]
-        const cfVals = dynamicCfKeys.map((k) => {
+        const base = [t.id, t.title, t.is_done ? 'true' : 'false', t.organization_id ?? '', t.tenant_id ?? '']
+        const cfVals = dynamicCfKeys.map(k => {
           const ok = `cf_${k}`
           const v = (t as Record<string, unknown>)[ok]
           if (Array.isArray(v)) return (v as string[]).join('|')
@@ -148,32 +146,40 @@ export const { metadata, GET, POST, PUT, DELETE } = makeCrudRoute({
     // Per-request: merge DB field definitions with code-declared set and update selectors + sort map
     beforeList: async (_q, ctx) => {
       try {
-        const em = (ctx.container.resolve('em') as any)
-        const baseOrgIds = ctx.organizationIds === null
-          ? null
-          : (ctx.organizationIds ?? []).filter((id): id is string => typeof id === 'string' && id.length > 0)
-        const scopedOrgIds = baseOrgIds === null
-          ? null
-          : (baseOrgIds.length > 0
-            ? Array.from(new Set(baseOrgIds))
-            : ((ctx.selectedOrganizationId ?? ctx.auth!.orgId) ? [ctx.selectedOrganizationId ?? ctx.auth!.orgId] : []))
+        const em = ctx.container.resolve('em') as any
+        const baseOrgIds =
+          ctx.organizationIds === null
+            ? null
+            : (ctx.organizationIds ?? []).filter((id): id is string => typeof id === 'string' && id.length > 0)
+        const scopedOrgIds =
+          baseOrgIds === null
+            ? null
+            : baseOrgIds.length > 0
+              ? Array.from(new Set(baseOrgIds))
+              : (ctx.selectedOrganizationId ?? ctx.auth!.orgId)
+                ? [ctx.selectedOrganizationId ?? ctx.auth!.orgId]
+                : []
         const defs = await em.find(CustomFieldDef, {
           entityId: E.example.todo as any,
           $and: [
             ...(scopedOrgIds === null
               ? []
               : scopedOrgIds.length > 0
-                ? [ { $or: [ { organizationId: { $in: scopedOrgIds as any } }, { organizationId: null } ] } ]
-                : [ { organizationId: null } ]),
-            { $or: [ { tenantId: ctx.auth!.tenantId as any }, { tenantId: null } ] },
+                ? [{ $or: [{ organizationId: { $in: scopedOrgIds as any } }, { organizationId: null }] }]
+                : [{ organizationId: null }]),
+            { $or: [{ tenantId: ctx.auth!.tenantId as any }, { tenantId: null }] },
           ],
         })
         const byKey = new Map<string, any>()
         const score = (x: any) => (x.tenantId ? 2 : 0) + (x.organizationId ? 1 : 0)
         for (const d of defs) {
           const ex = byKey.get(d.key)
-          if (!ex) { byKey.set(d.key, d); continue }
-          const sNew = score(d); const sOld = score(ex)
+          if (!ex) {
+            byKey.set(d.key, d)
+            continue
+          }
+          const sNew = score(d)
+          const sOld = score(ex)
           if (sNew > sOld) byKey.set(d.key, d)
         }
         // Hide any key that has a tombstoned record in scope
@@ -181,7 +187,7 @@ export const { metadata, GET, POST, PUT, DELETE } = makeCrudRoute({
         // Take winners only when active and not tombstoned; sort by priority
         const keysFromDefs = Array.from(byKey.values())
           .filter((d: any) => d.isActive !== false && !d.deletedAt && !tombstonedKeys.has(d.key))
-          .sort((a: any, b: any) => ((a.configJson?.priority ?? 0) - (b.configJson?.priority ?? 0)))
+          .sort((a: any, b: any) => (a.configJson?.priority ?? 0) - (b.configJson?.priority ?? 0))
           .map((d: any) => d.key)
         // Fallback discovery: keys that have values even if no definition exists
         try {
@@ -200,19 +206,20 @@ export const { metadata, GET, POST, PUT, DELETE } = makeCrudRoute({
               } else {
                 qb.whereNull('organization_id')
               }
-              if (ctx.auth!.tenantId != null) qb.andWhere((b: any) => b.where({ tenant_id: ctx.auth!.tenantId }).orWhereNull('tenant_id'))
+              if (ctx.auth!.tenantId != null)
+                qb.andWhere((b: any) => b.where({ tenant_id: ctx.auth!.tenantId }).orWhereNull('tenant_id'))
               else qb.whereNull('tenant_id')
             })
             .whereNull('deleted_at')
           const keysFromValues = (rows || []).map((r: any) => String(r.field_key))
           // Merge with code-declared keys and de-dupe
-          dynamicCfKeys = Array.from(new Set([ ...cfSel.keys, ...keysFromDefs, ...keysFromValues ]))
+          dynamicCfKeys = Array.from(new Set([...cfSel.keys, ...keysFromDefs, ...keysFromValues]))
         } catch {
           // Merge with code-declared keys and de-dupe (no values fallback)
-          dynamicCfKeys = Array.from(new Set([ ...cfSel.keys, ...keysFromDefs ]))
+          dynamicCfKeys = Array.from(new Set([...cfSel.keys, ...keysFromDefs]))
         }
-        const selectors = dynamicCfKeys.map((k) => `cf:${k}`)
-        listFields = [id, title, tenant_id, organization_id, is_done, ...selectors]
+        const selectors = dynamicCfKeys.map(k => `cf:${k}`)
+        listFields = [id, title, tenant_id, organization_id, is_done, created_at, ...selectors]
         // Reset the shared sort field map object in place to propagate changes
         for (const key of Object.keys(sortFieldMapRef)) delete sortFieldMapRef[key]
         sortFieldMapRef.id = id
@@ -220,11 +227,12 @@ export const { metadata, GET, POST, PUT, DELETE } = makeCrudRoute({
         ;(sortFieldMapRef as any).tenant_id = tenant_id
         ;(sortFieldMapRef as any).organization_id = organization_id
         ;(sortFieldMapRef as any).is_done = is_done
+        ;(sortFieldMapRef as any).created_at = created_at
         for (const k of dynamicCfKeys) sortFieldMapRef[`cf_${k}`] = `cf:${k}`
       } catch {
         // ignore; fall back to code-declared selectors
       }
-    }
+    },
   },
   actions: {
     create: {
