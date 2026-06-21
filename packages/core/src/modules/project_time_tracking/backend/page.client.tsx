@@ -16,6 +16,7 @@ interface TimeEntry {
   durationMinutes: number | null
   status: string
   billable: boolean
+  createdAt: string
 }
 
 interface TimeEntrySummary {
@@ -115,9 +116,7 @@ export default function ProjectTimeTrackingBackendPage() {
       header: t('entry.duration'),
       render: (entry: TimeEntry) => {
         if (entry.durationMinutes === null) return '—'
-        const hours = Math.floor(entry.durationMinutes / 60)
-        const minutes = entry.durationMinutes % 60
-        return `${hours}h ${minutes}m`
+        return formatDuration(entry.durationMinutes)
       },
     },
     {
