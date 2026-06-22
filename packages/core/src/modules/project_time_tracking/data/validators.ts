@@ -21,10 +21,7 @@ export const updateTimeEntrySchema = z
     billable: z.boolean().optional(),
   })
   .partial()
-  .refine(value => value.id !== undefined, {
-    message: 'Time entry id is required',
-    path: ['id'],
-  })
+  .required({ id: true })
 
 export const queryTimeEntriesSchema = z.object({
   projectId: z.string().uuid().optional(),

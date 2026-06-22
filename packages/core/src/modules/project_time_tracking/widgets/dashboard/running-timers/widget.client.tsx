@@ -5,19 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { Badge } from '@open-mercato/ui/primitives/badge'
 import { Card, CardContent } from '@open-mercato/ui/primitives/card'
-
-interface TimeEntry {
-  id: string
-  projectId: string
-  taskId: string | null
-  userId: string
-  description: string | null
-  startedAt: string
-  endedAt: string | null
-  durationMinutes: number | null
-  status: string
-  billable: boolean
-}
+import { type TimeEntry } from '../../../data/types'
 
 function formatElapsed(startedAt: string, now: number): string {
   const elapsedMinutes = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 60000))

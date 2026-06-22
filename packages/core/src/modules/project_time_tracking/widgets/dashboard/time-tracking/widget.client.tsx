@@ -3,26 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { Card, CardContent } from '@open-mercato/ui/primitives/card'
-
-interface TimeEntry {
-  id: string
-  projectId: string
-  taskId: string | null
-  userId: string
-  description: string | null
-  startedAt: string
-  endedAt: string | null
-  durationMinutes: number | null
-  status: string
-  billable: boolean
-}
-
-function formatDuration(minutes: number | null) {
-  if (minutes === null) return '—'
-  const hours = Math.floor(minutes / 60)
-  const remainder = minutes % 60
-  return `${hours}h ${remainder}m`
-}
+import { type TimeEntry, formatDuration } from '../../../data/types'
 
 async function fetchRecentTimeEntries(): Promise<TimeEntry[]> {
   const response = await fetch('/api/project-time-entries?pageSize=5&sortBy=startedAt')
@@ -79,7 +60,7 @@ export default function TimeTrackingDashboardWidget() {
               </div>
             </div>
             <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <span>{formatDuration(entry.durationMinutes)}</span>
+              <span>{entry.durationMinutes !== null ? formatDuration(entry.durationMinutes) : '—'}</span>
               <span>{entry.billable ? t('entry.billable') : t('entry.nonBillable')}</span>
             </div>
           </CardContent>

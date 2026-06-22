@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (parsed.sortBy === 'endedAt') {
-    qb.orderBy({ updatedAt: 'DESC', startedAt: 'DESC' })
+    qb.orderBy({ endedAt: 'DESC', startedAt: 'DESC' })
   } else if (parsed.sortBy === 'createdAt') {
     qb.orderBy({ createdAt: 'DESC' })
   } else {
