@@ -6,3 +6,6 @@ export const metadata: ModuleMetadata = {
   description: 'Project planning and progress tracking',
   version: '1.0.0',
 }
+
+export { features } from './acl'
+export { setup } from './setup'
