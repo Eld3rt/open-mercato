@@ -4,37 +4,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { DataTable } from '@open-mercato/ui/backend/data-table'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
-
-interface TimeEntry {
-  id: string
-  projectId: string
-  taskId: string | null
-  userId: string
-  description: string | null
-  startedAt: string
-  endedAt: string | null
-  durationMinutes: number | null
-  status: string
-  billable: boolean
-  createdAt: string
-}
-
-interface TimeEntrySummary {
-  totalEntries: number
-  activeTimers: number
-  totalTrackedMinutes: number
-}
-
-export function formatDuration(minutes: number) {
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-
-  if (hours > 0) {
-    return `${hours}h ${remainingMinutes}m`
-  }
-
-  return `${remainingMinutes}m`
-}
+import { type TimeEntry, type TimeEntrySummary, formatDuration } from '../data/types'
 
 export function getTimeEntrySummary(entries: TimeEntry[]): TimeEntrySummary {
   const totalEntries = entries.length
