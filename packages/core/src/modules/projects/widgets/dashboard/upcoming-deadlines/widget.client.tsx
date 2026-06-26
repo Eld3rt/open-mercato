@@ -105,8 +105,7 @@ export default function UpcomingDeadlinesWidget() {
       <CardHeader>
         <CardTitle className="text-base">{t('dashboard.upcomingDeadlines.title')}</CardTitle>
       </CardHeader>
-      <CardContent>
-        {projects.length === 0 ? (
+      <CardContent>        {projects.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">{t('dashboard.upcomingDeadlines.empty')}</div>
         ) : (
           <div className="space-y-3">
@@ -115,29 +114,6 @@ export default function UpcomingDeadlinesWidget() {
                 key={project.id}
                 className="flex items-start justify-between gap-3 p-2 rounded border border-border hover:bg-muted/50 transition cursor-pointer"
               >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{project.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatDaysUntil(project.daysUntilDue)}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Badge variant={getPriorityColor(project.priority)} className="text-xs">
-                    {project.priority}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-        {projects.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">{t('dashboard.upcomingDeadlines.empty')}</div>
-        ) : (
-          <div className="space-y-3">
-            {projects.map(project => (
-              <div key={project.id} className="flex items-start justify-between gap-3 p-2 rounded border border-border hover:bg-muted/50 transition">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{project.name}</p>
                   <p className="text-xs text-muted-foreground mt-1">{formatDaysUntil(project.daysUntilDue)}</p>
