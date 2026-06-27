@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import { getOrm } from '@open-mercato/shared/lib/db/mikro'
 import { ProjectTimeEntry } from '../../data/entities'
@@ -43,7 +42,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const parsed = queryTimeEntriesSchema.parse(Object.fromEntries(request.nextUrl.searchParams.entries()))
+  const parsedResult = queryTimeEntriesSchema.safeParse(Object.fromEntries(request.nextUrl.searchParams.entries()))
+  if (!parsedResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid query parameters', details: parsedResult.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+  const parsed = parsedResult.data
   const orm = await getOrm()
 
   const qb = orm.em.createQueryBuilder(ProjectTimeEntry, 't').select('*').where({
@@ -105,7 +111,14 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const parsed = createTimeEntrySchema.parse(body)
+  const parsedResult = createTimeEntrySchema.safeParse(body)
+  if (!parsedResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsedResult.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+  const parsed = parsedResult.data
   const orm = await getOrm()
 
   const startedAt = parsed.startedAt ? new Date(parsed.startedAt) : new Date()
@@ -140,7 +153,14 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json()
-  const parsed = updateTimeEntrySchema.parse(body)
+  const parsedResult = updateTimeEntrySchema.safeParse(body)
+  if (!parsedResult.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsedResult.error.flatten().fieldErrors },
+      { status: 400 },
+    )
+  }
+  const parsed = parsedResult.data
   const orm = await getOrm()
 
   const entry = await orm.em.findOne(ProjectTimeEntry, {
