@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createTimeEntrySchema } from '../data/validators'
+import { createTimeEntrySchema, updateTimeEntrySchema } from '../data/validators'
 
 describe('project_time_tracking time entry validators', () => {
   it('accepts null endedAt for create schema', () => {
@@ -17,5 +17,27 @@ describe('project_time_tracking time entry validators', () => {
     })
 
     expect(parsed.endedAt).toBeUndefined()
+  })
+
+  it('accepts null taskId and description for create schema', () => {
+    const parsed = createTimeEntrySchema.parse({
+      projectId: '00000000-0000-0000-0000-000000000000',
+      taskId: null,
+      description: null,
+    })
+
+    expect(parsed.taskId).toBeNull()
+    expect(parsed.description).toBeNull()
+  })
+
+  it('accepts null taskId and description for update schema', () => {
+    const parsed = updateTimeEntrySchema.parse({
+      id: '00000000-0000-0000-0000-000000000000',
+      taskId: null,
+      description: null,
+    })
+
+    expect(parsed.taskId).toBeNull()
+    expect(parsed.description).toBeNull()
   })
 })
